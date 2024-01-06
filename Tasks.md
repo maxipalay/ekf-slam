@@ -5,3 +5,6 @@
 * Task 0.2 (Making a Git Repository)
 * Task 0.3 (Making a README)
 * Task 0.4 (Making a Tasks.md)
+
+## Task A (Robot Description)
+* Task A.1 (nuturtle_description package)
