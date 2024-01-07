@@ -52,6 +52,8 @@ def generate_launch_description():
             executable='joint_state_publisher'
         ),
         Node(
+            condition=IfCondition(PythonExpression(
+                ['\'', LaunchConfiguration('use_rviz'), '\'', '== \'true\''])),
             package="rviz2",
             executable="rviz2",
             arguments=["-d", PathJoinSubstitution(
