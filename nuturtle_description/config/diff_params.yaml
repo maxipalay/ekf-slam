@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    wheel_radius: 0.033    # The radius of the wheels
+    track_width: 0.160     # The distance between the wheels
+    motor_cmd_max: 265     # The motors are provided commands in the interval [-motor_cmd_max, motor_cmd_max]
+    motor_cmd_per_rad_sec: 41.67 # Each motor command unit (mcu) is 0.024 rad/sec (i.e., 1 mcu = 0.024 rad/sec)
+    encoder_ticks_per_rad: 651.90 # The number of encoder ticks per radian. One revolution of the wheel is 212
+                           # ticks because it is a 12-bit encoder. (i.e. 2^12ticks=2πrad)
+    collision_radius: 0.11 # This is some simplified geometry used for collision detection
