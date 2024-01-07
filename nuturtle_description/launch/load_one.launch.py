@@ -14,18 +14,23 @@ def generate_launch_description():
             'use_jsp',
             default_value='true',
             description="controls whether the joint_state_publisher is used\
-                  to publish default joint states.\
-                  Values: ['true','false']"),
+                  to publish default joint states.",
+            choices = ["true", "false"]),
         DeclareLaunchArgument(
             'use_rviz',
             default_value='true',
-            description="controls whether rviz is launched.\
-                  Values: ['true','false']"),
+            description="controls whether rviz is launched.",
+            choices = ["true", "false"]),
+        DeclareLaunchArgument(
+            'color',
+            default_value='purple',
+            description="Determines the color that is passed to the xacro\
+                  file as an argument.",
+            choices = ["red", "green", "blue", "purple"]),
         DeclareLaunchArgument(
             'rviz_config',
             default_value='basic_purple.rviz',
-            description="Rviz configuration file for displaying the robot.\
-                  Expects name of the file in the share directory."),
+            description="rviz configuration file."),
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -33,8 +38,9 @@ def generate_launch_description():
                 {"robot_description":
                  Command([ExecutableInPackage("xacro", "xacro"), " ",
                          PathJoinSubstitution(
-                    [FindPackageShare("nuturtle_description"), "urdf/",
-                     "turtlebot3_burger.urdf.xacro"])])}
+                    [FindPackageShare("nuturtle_description"), "urdf",
+                     "turtlebot3_burger.urdf.xacro"]), " color:=",
+                     LaunchConfiguration('color')])}
             ]
         ),
         Node(
