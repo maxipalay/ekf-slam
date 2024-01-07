@@ -23,4 +23,18 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Install launch and config files.
+install(DIRECTORY
+  launch
+  config
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+# Install description.
+install(DIRECTORY
+  urdf
+  meshes
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 ament_package()
