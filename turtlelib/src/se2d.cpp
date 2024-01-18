@@ -23,7 +23,7 @@ namespace turtlelib {
     Transform2D::Transform2D(Vector2D trans): trans{trans}, rot{0.0} {}; 
 
     // rotation only
-    Transform2D::Transform2D(double radians): trans{0.0, 0.0}, rot{rot} {};
+    Transform2D::Transform2D(double radians): trans{0.0, 0.0}, rot{radians} {};
 
     // translation and rotation
     Transform2D::Transform2D(Vector2D trans, double radians): trans{trans}, rot{radians} {};
@@ -64,9 +64,9 @@ namespace turtlelib {
 
     // compose transforms
     Transform2D & Transform2D::operator*=(const Transform2D & rhs){
-        auto theta{rot};
-        auto x{std::cos(rot) * rhs.trans.x - std::sin(rot) * rhs.trans.y + trans.x};
-        auto y{std::sin(rot) * rhs.trans.x + std::cos(rot) * rhs.trans.y + trans.y};
+        auto theta{rot+rhs.rotation()};
+        auto x{std::cos(rot) * rhs.translation().x - std::sin(rot) * rhs.translation().y + trans.x};
+        auto y{std::sin(rot) * rhs.translation().x + std::cos(rot) * rhs.translation().y + trans.y};
         rot = theta;
         trans.x = x;
         trans.y = y;
@@ -86,7 +86,8 @@ namespace turtlelib {
     // return Transfrom in string form
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf){
     /// deg: 90 x: 3 y: 5
-        os << "deg: " << tf.rot << " x: " << tf.trans.x << " y: " << tf.trans.y;
+        os << "deg: " << rad2deg(tf.rot) << " x: " << tf.trans.x << " y: " << tf.trans.y;
+        return (os);
     }
 
     // read transform in string form
@@ -99,22 +100,22 @@ namespace turtlelib {
         double y{};
 
         if (is.peek() == 'd'){
-            while (!std::isdigit(is.peek())){
+            while (!std::isdigit(is.peek()) && is.peek()!='-'){
                 is.get();
             }
             is >> rot;
-            while (!std::isdigit(is.peek())){
+            while (!std::isdigit(is.peek()) && is.peek()!='-'){
                 is.get();
             }
             is >> x;
-            while (!std::isdigit(is.peek())){
+            while (!std::isdigit(is.peek()) && is.peek()!='-'){
                 is.get();
             }
             is >> y;
         } else {
             is >> rot >> x >> y;
         }
-        tf = Transform2D{{x, y}, rot};
+        tf = Transform2D{{x, y}, deg2rad(rot)};
         return (is);
     }
 
