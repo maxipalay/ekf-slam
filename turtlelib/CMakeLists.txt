@@ -21,7 +21,7 @@ if(BUILD_TESTING)
     find_package(Catch2 3 REQUIRED)
 
     # A test is just an executable that is linked against the unit testing library
-    add_executable(turtlelib_test tests/test_geometry2d.cpp tests/test_se2d.cpp)
+    add_executable(turtlelib_test tests/test_geometry2d.cpp tests/test_se2d.cpp tests/test_svg.cpp)
     target_link_libraries(turtlelib_test Catch2::Catch2WithMain turtlelib)
 
     # register the test with CTest, telling it what executable to run
