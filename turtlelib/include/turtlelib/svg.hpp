@@ -9,6 +9,7 @@
 
 namespace turtlelib
 {
+    /// \brief svg header (static text)
     constexpr auto svg_header = "<svg width=\"8.500000in\" height=\"11.000000in\" viewBox=\"0 0 816.000000 1056.000000\" xmlns=\"http://www.w3.org/2000/svg\">\n"
                                 "<defs>\n"
                                 "<marker\n"
@@ -25,22 +26,39 @@ namespace turtlelib
                                 "        </marker>\n"
                                 "</defs>\n";
 
+    /// \brief class that represents an svg document
     class Svg
     {
         private:
+            /// \brief stream of characters that compose the svg file
             std::stringstream ss;
+            /// \brief transform for centering content on the page 
             Transform2D tf{{500.0,500.0}};
+            /// \brief axis size for each drawn axis 
             int size_axis{100};
 
         public:
+            /// \brief Create an svg class 
             Svg(){
                 ss << svg_header;
             }
 
+            /// \brief add vector to svg file
+            /// \param p - origin of the vector
+            /// \param v - vector
             void addVector(Point2D p, Vector2D v);
+            
+            /// \brief add a point to svg file
+            /// \param p - point to draw
             void addPoint(Point2D p);
+            
+            /// \brief add coordinate axes to svg file
+            /// \param p - origin of the coordinate frame
+            /// \param name - name of the coordinate frame
             void addCoordinateAxes(Point2D p, char name);
             
+            /// \brief get the full svg file output as stringstream
+            /// \return output file as stringstream 
             std::stringstream& getOutput(){
                 ss << "</svg>";
                 return (ss);
