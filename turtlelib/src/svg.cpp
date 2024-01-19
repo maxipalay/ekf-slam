@@ -2,28 +2,29 @@
 
 namespace turtlelib {
     
-    void Svg::addVector(Point2D p, Vector2D v){
-        auto tf_p = tf(p);
-        auto tf_v = tf(v);
-        ss << "<line x1=\"" << tf_p.x << "\" x2=\"" << tf_v.x;
-        ss << "\" y1=\"" << tf_p.y << "\" y2=\"" << tf_v.y;
-        ss << "\" stroke=\"purple\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n";
+    void Svg::addVector(Point2D p, Vector2D v, const std::string& color){
+        ss << "<line x1=\"" << p.x*scaling+tf.translation().x << "\" x2=\"" << v.x*scaling+tf.translation().x;
+        ss << "\" y1=\"" << -p.y*scaling+tf.translation().y << "\" y2=\"" << -v.y*scaling+tf.translation().y;
+        ss << "\" stroke=\"" << color << "\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n";
     }
-    void Svg::addPoint(Point2D p){
-        auto tf_p = tf(p);
-        ss << "<circle cx=\"" << tf_p.x << "\" cy=\"" << tf_p.y << "\" r=\"3\" stroke=\"purple\" fill=\"purple\" stroke-width=\"1\" />\n";
+    void Svg::addPoint(Point2D p, const std::string& color){
+        ss << "<circle cx=\"" << p.x*scaling+tf.translation().x << "\" cy=\"" << -p.y*scaling+tf.translation().y << "\" r=\"3\" stroke=\"purple\" fill=\"" << color << "\" stroke-width=\"1\" />\n";
     }
 
-    void Svg::addCoordinateAxes(Point2D p, char name){
-        auto tf_p = tf(p);
+    void Svg::addCoordinateAxes(Transform2D frame, const std::string& name){
+        Point2D x{1,0};
+        Point2D y{0,1};
+        auto tf_x = frame(x);
+        auto tf_y = frame(y);
+
         ss << "<g>\n";
-        ss << "<line x1=\"" << tf_p.x << "\" x2=\"" << tf_p.x + size_axis;
-        ss << "\" y1=\"" << tf_p.y << "\" y2=\"" << tf_p.y;
+        ss << "<line x1=\"" << frame.translation().x*scaling+tf.translation().x << "\" x2=\"" << tf_x.x*scaling+tf.translation().x;
+        ss << "\" y1=\"" << -frame.translation().y*scaling+tf.translation().y << "\" y2=\"" << -tf_x.y*scaling+tf.translation().y;
         ss << "\" stroke=\"red\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n";
-        ss << "<line x1=\"" << tf_p.x << "\" x2=\"" << tf_p.x;
-        ss << "\" y1=\"" << tf_p.y << "\" y2=\"" << tf_p.y + size_axis;
+        ss << "<line x1=\"" << frame.translation().x*scaling+tf.translation().x << "\" x2=\"" << tf_y.x*scaling+tf.translation().x;
+        ss << "\" y1=\"" << -frame.translation().y*scaling+tf.translation().y  << "\" y2=\"" << -tf_y.y*scaling+tf.translation().y;
         ss << "\" stroke=\"green\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n";
-        ss << "<text x=\"" << tf_p.x << "\" y=\"" << tf_p.y << "\">{" << name << "}</text>\n";
+        ss << "<text x=\"" << frame.translation().x*scaling+tf.translation().x << "\" y=\"" << -frame.translation().y*scaling+tf.translation().y << "\">{" << name << "}</text>\n";
         ss << "</g>\n";
     }
 

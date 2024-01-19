@@ -49,4 +49,12 @@ namespace turtlelib {
         return (is);
     }
 
+    Vector2D normalize(const Vector2D & vec){
+        Vector2D res;
+        double mod = std::sqrt(std::pow(vec.x,2) + std::pow(vec.y,2));
+        res.x = vec.x / mod;
+        res.y = vec.y / mod;
+        return res;
+    }
+
 }

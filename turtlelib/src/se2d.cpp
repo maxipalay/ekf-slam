@@ -39,8 +39,8 @@ namespace turtlelib {
     // transform vector
     Vector2D Transform2D::operator()(Vector2D v) const {
         Vector2D result{};
-        result.x = std::cos(rot) * v.x - std::sin(rot) * v.y + trans.x;
-        result.y = std::sin(rot) * v.x + std::cos(rot) * v.y + trans.y;
+        result.x = std::cos(rot) * v.x - std::sin(rot) * v.y;
+        result.y = std::sin(rot) * v.x + std::cos(rot) * v.y;
         return (result);
     }
 

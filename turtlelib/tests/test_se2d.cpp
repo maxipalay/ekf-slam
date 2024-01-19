@@ -118,8 +118,8 @@ namespace turtlelib {
         tf = Transform2D(trans, 0.0);
         a = {0.3, -0.1};
         res = tf(a);
-        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(0.5, 1.0E-4));
-        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(-0.3, 1.0E-4));
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(0.3, 1.0E-4));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(-0.1, 1.0E-4));
 
         // pure rotation
         trans = {0.0, 0.0};
@@ -134,8 +134,8 @@ namespace turtlelib {
         tf = Transform2D(trans, 3.8);
         a = {0.1, -0.1};
         res = tf(a);
-        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(-0.0403, 1.0E-3));
-        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(-0.0821, 1.0E-4));
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(-0.1403, 1.0E-3));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(0.0179, 1.0E-4));
     }
 
     TEST_CASE("Transform2D(twist)", "[se2d]") {

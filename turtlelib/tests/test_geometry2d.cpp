@@ -74,5 +74,12 @@ namespace turtlelib {
         REQUIRE_THAT(vec.y, Catch::Matchers::WithinAbs(0.0, 1.0E-8));
     }
 
+    TEST_CASE("Normalize(Vector2D)", "[geometry]") {
+        Vector2D vec{1.0,1.0};
+        Vector2D normalized = normalize(vec);
+        REQUIRE_THAT(normalized.x, Catch::Matchers::WithinAbs(0.707, 1.0E-3));
+        REQUIRE_THAT(normalized.y, Catch::Matchers::WithinAbs(0.707, 1.0E-3));
+    }
+
 }
 

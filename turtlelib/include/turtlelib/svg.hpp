@@ -33,9 +33,11 @@ namespace turtlelib
             /// \brief stream of characters that compose the svg file
             std::stringstream ss;
             /// \brief transform for centering content on the page 
-            Transform2D tf{{500.0,500.0}};
+            Transform2D tf{{408.0,528.0},0.0};
             /// \brief axis size for each drawn axis 
-            int size_axis{100};
+            double size_axis{100};
+            /// \brief scaling for the output (1 inch = 96 pixels)
+            double scaling{96};
 
         public:
             /// \brief Create an svg class 
@@ -46,16 +48,18 @@ namespace turtlelib
             /// \brief add vector to svg file
             /// \param p - origin of the vector
             /// \param v - vector
-            void addVector(Point2D p, Vector2D v);
+            /// \param color - the color in which to draw
+            void addVector(Point2D p, Vector2D v, const std::string& color);
             
             /// \brief add a point to svg file
             /// \param p - point to draw
-            void addPoint(Point2D p);
+            /// \param color - the color in which to draw
+            void addPoint(Point2D p, const std::string& color);
             
             /// \brief add coordinate axes to svg file
-            /// \param p - origin of the coordinate frame
+            /// \param frame - 2D transform
             /// \param name - name of the coordinate frame
-            void addCoordinateAxes(Point2D p, char name);
+            void addCoordinateAxes(Transform2D frame, const std::string& name);
             
             /// \brief get the full svg file output as stringstream
             /// \return output file as stringstream 
