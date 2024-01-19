@@ -19,9 +19,6 @@ namespace turtlelib
     /// \param d2 - a second number to compare
     /// \param epsilon - absolute threshold required for equality
     /// \return true if abs(d1 - d2) < epsilon
-    /// NOTE: implement this in the header file
-    /// constexpr means that the function can be computed at compile time
-    /// if given a compile-time constant as input
     constexpr bool almost_equal(double d1, double d2, double epsilon=1.0e-12)
     {
         if(abs(d1-d2) < epsilon){
