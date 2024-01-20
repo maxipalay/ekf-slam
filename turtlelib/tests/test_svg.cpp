@@ -24,7 +24,7 @@ namespace turtlelib {
                                 "<g>\n"
                                 "<line x1=\"408\" x2=\"504\" y1=\"528\" y2=\"528\" stroke=\"red\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n"
                                 "<line x1=\"408\" x2=\"408\" y1=\"528\" y2=\"432\" stroke=\"green\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n"
-                                "<text x=\"408\" y=\"528\">{a}</text>\n"
+                                "<text x=\"428\" y=\"548\">{a}</text>\n"
                                 "</g>\n"
                                 "<circle cx=\"504\" cy=\"432\" r=\"3\" stroke=\"purple\" fill=\"purple\" stroke-width=\"1\" />\n"
                                 "<line x1=\"600\" x2=\"696\" y1=\"336\" y2=\"240\" stroke=\"purple\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n"
@@ -41,7 +41,5 @@ namespace turtlelib {
         
         REQUIRE(ss.str() == expected_output);
     }
-
-    
 
 }

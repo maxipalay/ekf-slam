@@ -24,7 +24,7 @@ namespace turtlelib {
         ss << "<line x1=\"" << frame.translation().x*scaling+tf.translation().x << "\" x2=\"" << tf_y.x*scaling+tf.translation().x;
         ss << "\" y1=\"" << -frame.translation().y*scaling+tf.translation().y  << "\" y2=\"" << -tf_y.y*scaling+tf.translation().y;
         ss << "\" stroke=\"green\" stroke-width=\"5\" marker-end=\"url(#Arrow1Send)\" />\n";
-        ss << "<text x=\"" << frame.translation().x*scaling+tf.translation().x << "\" y=\"" << -frame.translation().y*scaling+tf.translation().y << "\">{" << name << "}</text>\n";
+        ss << "<text x=\"" << frame.translation().x*scaling+tf.translation().x+text_offset << "\" y=\"" << -frame.translation().y*scaling+tf.translation().y+text_offset << "\">{" << name << "}</text>\n";
         ss << "</g>\n";
     }
 

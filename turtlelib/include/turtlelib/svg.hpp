@@ -38,6 +38,8 @@ namespace turtlelib
             double size_axis{100};
             /// \brief scaling for the output (1 inch = 96 pixels)
             double scaling{96};
+            /// \brief text offset from given point in x,y
+            double text_offset{20};
 
         public:
             /// \brief Create an svg class 

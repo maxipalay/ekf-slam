@@ -59,8 +59,8 @@ int main()
     cout << p_c << "\n";
 
     mysvg.addPoint(p_a, std::string{"purple"});
-    mysvg.addPoint(Tab(p_b), std::string{"brown"});
-    mysvg.addPoint(Tac(p_c), std::string{"orange"});
+    mysvg.addPoint(p_b, std::string{"brown"});
+    mysvg.addPoint(p_c, std::string{"orange"});
 
     // vector
 
@@ -83,9 +83,10 @@ int main()
     cout << "v_c: ";
     cout << v_c << "\n";
 
-    mysvg.addVector({Tab.translation().x, Tab.translation().y}, Tab(v_bhat), std::string{"brown"});
+
+    mysvg.addVector({Tab.translation().x, Tab.translation().y}, {Tab.translation().x+v_bhat.x, Tab.translation().y+v_bhat.y}, std::string{"brown"});
     mysvg.addVector({0, 0}, v_a, std::string{"purple"});
-    mysvg.addVector({Tac.translation().x, Tac.translation().y}, Tac(v_c), std::string{"orange"});
+    mysvg.addVector({Tac.translation().x, Tac.translation().y}, {Tac.translation().x+v_c.x, Tac.translation().y+v_c.y}, std::string{"orange"});
 
     std::ofstream ofs ("/tmp/frames.svg", std::ofstream::out);
 
