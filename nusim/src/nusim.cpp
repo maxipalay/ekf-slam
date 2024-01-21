@@ -139,7 +139,7 @@ private:
     double posX, double posY, double posZ, double id)
   {
     visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "~/nusim_world";
+    marker.header.frame_id = "nusim/world";
     marker.header.stamp = get_clock()->now();
     marker.ns = "";
     marker.id = id;
@@ -163,7 +163,7 @@ private:
     double posX, double posY, double posZ, double id)
   {
     visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "~/nusim_world";
+    marker.header.frame_id = "nusim/world";
     marker.header.stamp = get_clock()->now();
     marker.ns = "";
     marker.id = id;
@@ -225,29 +225,29 @@ private:
     auto y_size = get_parameter("arena_y_length").as_double();
 
     visualization_msgs::msg::MarkerArray marker_array;
-    // x bottom
+    // top-down with x axis pointing up, this is the right wall
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
         x_size + 2.0 * wall_thickness, wall_thickness, wall_height, 0,
         -(y_size + wall_thickness) / 2.0, wall_z_pos, 0));
-    // x top
+    // top-down with x axis pointing up, this is the left wall
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
         x_size + 2.0 * wall_thickness, wall_thickness, wall_height, 0,
         (y_size + wall_thickness) / 2.0, wall_z_pos, 1));
-    // y left
+    // top-down with x axis pointing up, this is the top wall
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
-        wall_thickness, x_size + 2.0 * wall_thickness, wall_height,
+        wall_thickness, y_size + 2.0 * wall_thickness, wall_height,
         (x_size + wall_thickness) / 2.0, 0, wall_z_pos, 2));
-    // y right
+    // top-down with x axis pointing up, this is the bottom wall
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
-        x_size + 2.0 * wall_thickness, wall_thickness, wall_height,
+        wall_thickness, y_size + 2.0 * wall_thickness, wall_height,
         -(x_size + wall_thickness) / 2.0, 0, wall_z_pos, 3));
 
     walls_publisher_->publish(marker_array);
