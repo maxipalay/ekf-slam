@@ -13,3 +13,19 @@
 * Task A.4 (prefix)
 * Task A.5 (multi robot)
 * Task A.6 (README)
+
+## Task B (C++ and 2D Transforms)
+* Task B.1 (geometry primitives)
+* Task B.2 (unit testing geometry)
+* Task B.3 (SE(2) geometry)
+* Task B.4 (unit testing SE(2))
+* Task B.5 (visualization)
+* Task B.6 (executable implementation)
+MISSING TASK B.7
+
+## Task C (The Simulator)
+* Task C.1 (nusim package)
+* Task C.2 (simulation node)
+* Task C.3 (simulated turtle)
+* Task C.4 (walls)
+* Task C.5 (cylindrical obstacles)
