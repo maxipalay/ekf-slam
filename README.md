@@ -6,4 +6,10 @@
 # Package List
 This repository consists of several ROS packages
 
-- <PACKAGE1> - <one sentence description>
+- nuturtle_description - Customized description for the turtlebot.
+- nusim - Custom simulator with environment for turtlebot.
+- nusim_interfaces - Custom service/message definitions for nusim.
+
+There is also a c++ library
+
+- turtlelib - Provides c++ operations for 2D transforms.
