@@ -37,7 +37,7 @@ def generate_launch_description():
             package="rviz2",
             executable="rviz2",
             arguments=["-d", PathJoinSubstitution(
-                    [FindPackageShare("nusim"),"config/",
+                    [FindPackageShare("nusim"), "config/",
                      LaunchConfiguration('rviz_config')]),
             ],
             on_exit=launch.actions.Shutdown()
