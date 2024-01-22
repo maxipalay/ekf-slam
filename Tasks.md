@@ -21,7 +21,7 @@
 * Task B.4 (unit testing SE(2))
 * Task B.5 (visualization)
 * Task B.6 (executable implementation)
-MISSING TASK B.7
+* Task B.7 (conceptual questions)
 
 ## Task C (The Simulator)
 * Task C.1 (nusim package)
