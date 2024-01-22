@@ -30,4 +30,4 @@
 * Task C.4 (walls)
 * Task C.5 (cylindrical obstacles)
 * Task C.6 (nusim launch)
-MISSING TASK C.7
+* Task C.7 (README.md)
