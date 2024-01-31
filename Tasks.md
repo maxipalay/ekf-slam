@@ -22,6 +22,7 @@
 * Task B.5 (visualization)
 * Task B.6 (executable implementation)
 * Task B.7 (conceptual questions)
+* Task B.8 (Vector Operations)
 
 ## Task C (The Simulator)
 * Task C.1 (nusim package)
