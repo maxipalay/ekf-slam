@@ -49,12 +49,71 @@ namespace turtlelib {
         return (is);
     }
 
-    Vector2D normalize(const Vector2D & vec){
+    Vector2D normalize(const Vector2D &vec)
+    {
         Vector2D res;
-        double mod = std::sqrt(std::pow(vec.x,2) + std::pow(vec.y,2));
+        double mod = magnitude(vec);
         res.x = vec.x / mod;
         res.y = vec.y / mod;
         return res;
+    }
+
+    Vector2D & Vector2D::operator+=(const Vector2D &rhs)
+    {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+
+    Vector2D & Vector2D::operator-=(const Vector2D &rhs)
+    {
+        x -= rhs.x;
+        y -= rhs.y;
+        return *this;
+    }
+
+    Vector2D & Vector2D::operator*=(const double & scalar)
+    {
+        x *= scalar;
+        y *= scalar;
+        return *this;
+    }
+
+    Vector2D operator+(Vector2D lhs, const Vector2D & rhs)
+    {
+        return lhs += rhs;
+    }
+
+    Vector2D operator-(Vector2D lhs, const Vector2D & rhs)
+    {
+        return lhs -= rhs;
+    }
+
+    Vector2D operator*(Vector2D lhs, const double & scalar)
+    {
+        return lhs *= scalar;
+    }
+
+    Vector2D operator*(const double & scalar, Vector2D rhs)
+    {
+        return rhs *= scalar;
+    }
+
+    double dot(const Vector2D & lhs, const Vector2D & rhs)
+    {
+        return lhs.x*rhs.x + lhs.y*rhs.y;
+    }
+
+    double magnitude(Vector2D vec)
+    {
+        return std::sqrt(std::pow(vec.x,2) + std::pow(vec.y,2));
+    }
+
+    double angle(const Vector2D & vec1, const Vector2D & vec2)
+    {
+        auto cos = dot(vec1, vec2)/magnitude(vec1)/magnitude(vec2);
+        return std::acos(cos);
+
     }
 
 }

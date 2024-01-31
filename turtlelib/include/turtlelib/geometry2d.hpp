@@ -90,6 +90,22 @@ namespace turtlelib
 
         /// \brief the y coordinate
         double y = 0.0;
+
+        /// \brief add vectors, modifying the lhs
+        /// \param rhs - Vector2D
+        /// \return a reference to the modified vector
+        Vector2D & operator+=(const Vector2D & rhs);
+
+        /// \brief subtract vectors, modifying the lhs
+        /// \param rhs - Vector2D
+        /// \return a reference to the modified vector
+        Vector2D & operator-=(const Vector2D & rhs);
+
+        /// \brief multiply vector by scalar, modifying the lhs
+        /// \param rhs - Vector2D
+        /// \return a reference to the modified vector
+        Vector2D & operator*=(const double & scalar);
+
     };
 
     /// \brief normalize a vector
@@ -122,6 +138,47 @@ namespace turtlelib
     /// \param is - stream from which to read
     /// \param v [out] - output vector
     std::istream & operator>>(std::istream & is, Vector2D & v);
+
+    /// \brief add vectors, returning a new vector
+    /// \param rhs - Vector2D
+    /// \return a reference to the modified vector
+    Vector2D operator+(Vector2D lhs, const Vector2D & rhs);
+
+    /// \brief subtract vectors, returning a new vector
+    /// \param rhs - Vector2D
+    /// \return a reference to the modified vector
+    Vector2D operator-(Vector2D lhs, const Vector2D & rhs);
+
+    /// \brief multiply vector by scalar, returning a new vector
+    /// \param lhs - Vector2D
+    /// \param scalar - double scalar
+    /// \return a reference to the modified vector
+    Vector2D operator*(Vector2D lhs, const double & scalar);
+
+    /// \brief multiply vector by scalar, returning a new vector
+    /// \param scalar - double scalar
+    /// \param rhs - Vector2D
+    /// \return a reference to the modified vector
+    Vector2D operator*(const double & scalar, Vector2D rhs);
+
+    /// \brief dot product of two vectors
+    /// \param lhs - Vector2D
+    /// \param rhs - Vector2D
+    /// \return dot product - double
+    double dot(const Vector2D & lhs, const Vector2D & rhs);
+
+    /// \brief get the magnitude of a vector
+    /// \param vec - Vector2D
+    /// \return magnitude - double
+    double magnitude(Vector2D vec);
+
+    /// \brief return the angle between two vectors
+    /// \param vec1 - Vector2D
+    /// \param vec2 - Vector2D
+    /// \return the angle between the vectors (rad) - double
+    double angle(const Vector2D & vec1, const Vector2D & vec2);
+
+
 }
 
 #endif

@@ -81,5 +81,85 @@ namespace turtlelib {
         REQUIRE_THAT(normalized.y, Catch::Matchers::WithinAbs(0.707, 1.0E-3));
     }
 
+    TEST_CASE("Vector2D+", "[geometry]") {
+        Vector2D vec1{1.0,1.0};
+        Vector2D vec2{-1.0,1.0};
+        auto res = vec1 + vec2;
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(2.0, 1.0E-3));
+    }
+
+    TEST_CASE("Vector2D-", "[geometry]") {
+        Vector2D vec1{1.0,1.0};
+        Vector2D vec2{-1.0,0.0};
+        auto res = vec1 - vec2;
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(2.0, 1.0E-3));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+    }
+
+    TEST_CASE("Vector2D*scalar", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        double factor{0.1};
+        auto res = vec1 * factor;
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(0.1, 1.0E-3));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+    }
+
+    TEST_CASE("scalar*Vector2D", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        double factor{0.1};
+        auto res = factor * vec1;
+        REQUIRE_THAT(res.x, Catch::Matchers::WithinAbs(0.1, 1.0E-3));
+        REQUIRE_THAT(res.y, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+    }
+
+    TEST_CASE("Vector2D+=", "[geometry]") {
+        Vector2D vec1{1.0,1.0};
+        Vector2D vec2{-1.0,1.0};
+        vec1 += vec2;
+        REQUIRE_THAT(vec1.x, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+        REQUIRE_THAT(vec1.y, Catch::Matchers::WithinAbs(2.0, 1.0E-3));
+    }
+
+    TEST_CASE("Vector2D-=", "[geometry]") {
+        Vector2D vec1{1.0,1.0};
+        Vector2D vec2{-1.0,0.0};
+        vec1 -= vec2;
+        REQUIRE_THAT(vec1.x, Catch::Matchers::WithinAbs(2.0, 1.0E-3));
+        REQUIRE_THAT(vec1.y, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+    }
+
+    TEST_CASE("Vector2D*=", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        double scalar{0.1};
+        vec1 *= scalar;
+        REQUIRE_THAT(vec1.x, Catch::Matchers::WithinAbs(0.1, 1.0E-3));
+        REQUIRE_THAT(vec1.y, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+    }
+
+    TEST_CASE("dot", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        Vector2D vec2{-1.0,-1.0};
+        auto res = dot(vec1, vec2);
+        REQUIRE_THAT(res, Catch::Matchers::WithinAbs(-1.0, 1.0E-3));
+    }
+
+    TEST_CASE("magnitude", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        Vector2D vec2{-1.0,-1.0};
+        auto res1 = magnitude(vec1);
+        auto res2 = magnitude(vec2);
+        REQUIRE_THAT(res1, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+        REQUIRE_THAT(res2, Catch::Matchers::WithinAbs(1.414, 1.0E-3));
+    }
+
+    TEST_CASE("angle", "[geometry]") {
+        Vector2D vec1{1.0,0.0};
+        Vector2D vec2{-1.0,-1.0};
+        auto ang = angle(vec1, vec2);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(3.0*PI/4.0, 1.0E-3));
+        
+    }
+
 }
 
