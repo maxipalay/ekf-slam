@@ -240,13 +240,14 @@ namespace turtlelib {
         REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
         REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
 
+        // test both translation and rotation
         twist.omega = 1.0;
         twist.x = 1.0;
         twist.y = -1.0;
         tf = integrate_twist(twist);
         REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(1.0, 1.0E-3));
-        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
-        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-1.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-std::cos(twist.omega)-std::sin(twist.omega)+1, 1.0E-3));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(-std::cos(twist.omega)+std::sin(twist.omega)+1, 1.0E-3));
     }
 
 

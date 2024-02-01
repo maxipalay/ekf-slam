@@ -125,6 +125,13 @@ namespace turtlelib {
     }
 
     Transform2D integrate_twist(Twist2D twist){
-        return Transform2D{Vector2D{twist.x, twist.y}, twist.omega};
+        if (twist.omega == 0.0){    // if twist is pure translation
+            return Transform2D{Vector2D{twist.x, twist.y}};
+        } else {    // if twist includes rotation
+            auto Tsb = Transform2D{Vector2D{twist.y/twist.omega, -twist.x/twist.omega}};
+            auto Tbs = Tsb.inv();
+            auto Tssprime = Transform2D{twist.omega};
+            return Tbs * Tssprime * Tsb;
+        }
     }
 }
