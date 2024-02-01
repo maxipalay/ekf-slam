@@ -123,4 +123,8 @@ namespace turtlelib {
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs){
         return lhs*=rhs;
     }
+
+    Transform2D integrate_twist(Twist2D twist){
+        return Transform2D{Vector2D{twist.x, twist.y}, twist.omega};
+    }
 }

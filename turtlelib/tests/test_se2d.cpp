@@ -223,5 +223,31 @@ namespace turtlelib {
 
     }
 
+    TEST_CASE("integrate_twist", "[se2d]") {
+        // test only translation
+        Twist2D twist{0.0, 1.0, -1.1};
+        auto tf = integrate_twist(twist);
+        REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-1.1, 1.0E-3));
+        
+        // test only rotation
+        twist.omega = 1.0;
+        twist.x = 0.0;
+        twist.y = 0.0;
+        tf = integrate_twist(twist);
+        REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(0.0, 1.0E-3));
+
+        twist.omega = 1.0;
+        twist.x = 1.0;
+        twist.y = -1.0;
+        tf = integrate_twist(twist);
+        REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(1.0, 1.0E-3));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-1.0, 1.0E-3));
+    }
+
 
 }
