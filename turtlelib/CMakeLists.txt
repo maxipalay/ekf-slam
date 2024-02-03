@@ -21,7 +21,7 @@ if(BUILD_TESTING)
     find_package(Catch2 3 REQUIRED)
 
     # A test is just an executable that is linked against the unit testing library
-    add_executable(turtlelib_test tests/test_geometry2d.cpp tests/test_se2d.cpp tests/test_svg.cpp)
+    add_executable(turtlelib_test tests/test_geometry2d.cpp tests/test_se2d.cpp tests/test_svg.cpp tests/test_diff_drive.cpp)
     target_link_libraries(turtlelib_test Catch2::Catch2WithMain turtlelib)
 
     # register the test with CTest, telling it what executable to run
@@ -49,7 +49,7 @@ endif()
 # you don't need or want to.
 # name is the name of the library without the extension or lib prefix
 # name creates a cmake "target"
-add_library(turtlelib src/geometry2d.cpp src/svg.cpp src/se2d.cpp)
+add_library(turtlelib src/geometry2d.cpp src/svg.cpp src/se2d.cpp src/diff_drive.cpp)
 
 # Use target_include_directories so that #include"mylibrary/header.hpp" works
 # The use of the <BUILD_INTERFACE> and <INSTALL_INTERFACE> is because when
