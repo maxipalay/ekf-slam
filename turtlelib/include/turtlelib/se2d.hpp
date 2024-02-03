@@ -5,7 +5,7 @@
 
 
 #include<iosfwd> // contains forward definitions for iostream objects
-# include <sstream>
+#include <sstream>
 #include"turtlelib/geometry2d.hpp"
 
 namespace turtlelib
