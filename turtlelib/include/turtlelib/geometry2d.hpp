@@ -21,6 +21,11 @@ namespace turtlelib
     /// \return true if abs(d1 - d2) < epsilon
     constexpr bool almost_equal(double d1, double d2, double epsilon=1.0e-12)
     {
+        if (d1-d2 < 0){
+            return d1-d2 > -epsilon;
+        } else {
+            return d1-d2 < epsilon;
+        }
         return fabs(d1-d2) < epsilon;
     }
 
@@ -50,6 +55,8 @@ namespace turtlelib
     /// You should also purposely (and temporarily) make one of these tests fail
     /// just to see what happens
     static_assert(almost_equal(0, 0), "is_zero failed");
+
+    static_assert(almost_equal(-1e-13, 0.0), "small number almost_equal failed");
 
     static_assert(almost_equal(deg2rad(0.0), 0.0), "deg2rad failed");
 
