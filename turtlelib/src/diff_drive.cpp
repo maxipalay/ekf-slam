@@ -7,7 +7,6 @@ namespace turtlelib {
         wheelTrack = track;
         wheelRadius = radius;
         InitializePseudoInv();
-        
     }
 
     void DiffDrive::InitializePseudoInv(){
@@ -38,14 +37,14 @@ namespace turtlelib {
         return config;
     }
 
-    std::tuple <double, double> DiffDrive::IKin(Twist2D twist){
+    wheelSpeeds DiffDrive::IKin(Twist2D twist){
         if (!almost_equal(twist.y, 0.0)){
             throw std::logic_error("wheels would slip for input twist!");
         }
         auto velLeft = leftPinv.p11*twist.omega+leftPinv.p12*twist.x;
+        auto velRight = leftPinv.p21*twist.omega+leftPinv.p22*twist.x;
         // negative sign precedes due to the orientation of the wheel frame
-        auto velRight = -leftPinv.p21*twist.omega+leftPinv.p22*twist.x;
-        return std::make_tuple(velLeft,velRight);
+        return wheelSpeeds{velLeft,-velRight};
     }
 
     Transform2D DiffDrive::getConfig(){

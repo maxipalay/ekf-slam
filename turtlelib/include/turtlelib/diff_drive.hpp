@@ -8,6 +8,12 @@
 #include <exception>
 
 namespace turtlelib {
+
+    /// \brief struct that represents wheel speeds
+    struct wheelSpeeds {
+        double left{};
+        double right{};
+    };
     
     /// \brief A class that represents a diff drive robot's kinematics
     class DiffDrive {
@@ -41,7 +47,7 @@ namespace turtlelib {
             /// \brief perform inverse kinematics given a twist
             /// \param twist - the desired twist
             /// \return tuple with wheel velocities to achieve the twist
-            std::tuple <double, double> IKin(Twist2D twist);
+            wheelSpeeds IKin(Twist2D twist);
 
             /// \brief get the current configuration
             /// \return the current Transform2D
