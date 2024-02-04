@@ -1,0 +1,9 @@
+repositories:
+  nuturtlebot_msgs:
+    type: git
+    url: https://github.com/ME495-Navigation/nuturtlebot_msgs
+    version: humble
+  slam-project-maxipalay:
+    type: git
+    url: git@github.com:ME495-Navigation/slam-project-maxipalay.git
+    version: main
