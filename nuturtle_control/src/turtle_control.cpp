@@ -68,14 +68,6 @@ public:
   }
 
 private:
-  // main loop
-  void timer_callback()
-  {
-
-    // output timestep to screen
-    RCLCPP_INFO_STREAM(get_logger(), "timer!");
-
-  }
 
   void vel_cb(const geometry_msgs::msg::Twist & msg){
     // create a 2D Twist
