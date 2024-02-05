@@ -33,3 +33,11 @@
 * Task C.5 (cylindrical obstacles)
 * Task C.6 (nusim launch)
 * Task C.7 (README.md)
+
+## Task D (Kinematics) (TODO)
+* Task D.1 (DiffDrive class)
+* Task D.2 (DiffDrive test)
+TODO: Task D.3 (Documentation)
+
+## Task E (Robot Control)
+* Task E.1 (Turtle interface)
