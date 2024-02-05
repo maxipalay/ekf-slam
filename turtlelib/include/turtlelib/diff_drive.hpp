@@ -4,7 +4,6 @@
 /// \brief Kinematics for a differential drive robot.
 
 #include "turtlelib/se2d.hpp"
-#include <tuple>
 #include <exception>
 
 namespace turtlelib {
