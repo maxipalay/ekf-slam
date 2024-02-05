@@ -144,7 +144,6 @@ private:
   int motorCmdMax;
   double motorCmdPerRadSec;
   double encoderTicksPerRad;
-  double timestep_;
 
   turtlelib::DiffDrive ddrive{wheelTrack, wheelRadius};
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subCmdVel_;
