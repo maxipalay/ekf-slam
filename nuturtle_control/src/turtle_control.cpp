@@ -1,15 +1,19 @@
 /// \file
-/// \brief Custom simulator core implementation.
+/// \brief Turtle control implementation.
 ///
 /// PARAMETERS:
-///     wheel_radius (double): 
-///     track_width (double):   
-///     motor_cmd_max (double):  
-///     motor_cmd_per_rad_sec (double):
-///     encoder_ticks_per_rad (double):
+///     wheel_radius (double): radius of the turtlebot's wheels
+///     track_width (double): distance between the wheels
+///     motor_cmd_max (integer): motor command absolute maximum limit
+///     motor_cmd_per_rad_sec (double): motor command units per rad/s of speed for wheels
+///     encoder_ticks_per_rad (double): number of encoder ticks per radian
 
 /// PUBLISHES:
+///     wheel_cmd (nuturtlebot_msgs::msg::WheelCommands): wheel commands for the turtlebot
+///     joint_states (sensor_msgs::msg::JointState): wheels position
 /// SUBSCRIBES:
+///     cmd_vel (geometry_msgs::msg::Twist): motion commands
+///     sensor_data (nuturtlebot_msgs::msg::SensorData): encoder information
 
 #include <chrono>
 #include <functional>
@@ -39,7 +43,6 @@ public:
     declare_parameter("motor_cmd_max", rclcpp::ParameterType::PARAMETER_INTEGER);
     declare_parameter("motor_cmd_per_rad_sec", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("encoder_ticks_per_rad", rclcpp::ParameterType::PARAMETER_DOUBLE);
-    //declare_parameter("rate", 100.0);
 
     wheelRadius = get_parameter("wheel_radius").as_double();
     wheelTrack = get_parameter("track_width").as_double();
@@ -50,19 +53,10 @@ public:
     // instance diffDrive class
     ddrive = turtlelib::DiffDrive{wheelTrack, wheelRadius};
 
-    // // calculate timer step
-    // std::chrono::milliseconds timerStep =
-    //   (std::chrono::milliseconds)(int)(1000.0 / get_parameter("rate").as_double());
-    // // we'll store the timestep in seconds
-    // timestep_ = 1.0/get_parameter("rate").as_double();
-
-    // // create main loop timer
-    // timer_ = create_wall_timer(
-    //   timerStep, std::bind(&TurtleControl::timer_callback, this));
-
     // create publishers and subscribers
 
     pubWheelCmd_ = create_publisher<nuturtlebot_msgs::msg::WheelCommands>("wheel_cmd", 10);
+    
     pubJointStates_ = create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
 
     subCmdVel_ = create_subscription<geometry_msgs::msg::Twist>(
@@ -161,7 +155,6 @@ private:
   double timestep_;
 
   turtlelib::DiffDrive ddrive{wheelTrack, wheelRadius};
-  //rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subCmdVel_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr pubWheelCmd_;
   rclcpp::Subscription<nuturtlebot_msgs::msg::SensorData>::SharedPtr subSensorData_;
