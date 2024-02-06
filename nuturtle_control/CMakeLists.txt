@@ -15,6 +15,11 @@ find_package(turtlelib REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nuturtlebot_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(nuturtle_control_interfaces REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -29,11 +34,15 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(turtle_control src/turtle_control.cpp)
-ament_target_dependencies(turtle_control rclcpp geometry_msgs sensor_msgs nuturtlebot_msgs)
+ament_target_dependencies(turtle_control rclcpp geometry_msgs sensor_msgs nuturtlebot_msgs nav_msgs tf2 tf2_ros)
 target_link_libraries(turtle_control turtlelib::turtlelib)
 
+add_executable(odometry src/odometry.cpp)
+ament_target_dependencies(odometry rclcpp geometry_msgs sensor_msgs nuturtlebot_msgs nav_msgs tf2 tf2_ros nuturtle_control_interfaces)
+target_link_libraries(odometry turtlelib::turtlelib)
+
 install(TARGETS
-  turtle_control
+  turtle_control odometry
   DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files.
