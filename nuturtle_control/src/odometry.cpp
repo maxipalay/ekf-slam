@@ -125,6 +125,8 @@ private:
 
   void joints_cb(const sensor_msgs::msg::JointState & msg){
     auto timeNow = get_clock()->now();
+    // we should be using the names provided (nameWheelLeft, nameWheelRight)
+    // to find out the indices of those in the vector
     auto transform = ddrive.FKin(msg.position.at(0), msg.position.at(1));
     if (!first_joints_cb){
         auto dt = (timeNow - lastJointData).seconds();
