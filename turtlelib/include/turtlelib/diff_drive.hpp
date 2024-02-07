@@ -18,15 +18,15 @@ namespace turtlelib {
     class DiffDrive {
         private:
             // args
-            double wheelTrack;
-            double wheelRadius;
-            double phiLeft{};
-            double phiRight{};
+            double wheel_track;
+            double wheel_radius;
+            double phi_left{};
+            double phi_right{};
             Transform2D config{};
             
             struct Pseudoinv {double p11, p12, p13, p21, p22, p23;};
 
-            Pseudoinv leftPinv {};
+            Pseudoinv left_pinv {};
 
             void InitializePseudoInv();
 

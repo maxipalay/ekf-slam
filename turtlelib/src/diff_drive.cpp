@@ -4,37 +4,37 @@
 namespace turtlelib {
 
     DiffDrive::DiffDrive(double track, double radius){
-        wheelTrack = track;
-        wheelRadius = radius;
+        wheel_track = track;
+        wheel_radius = radius;
         InitializePseudoInv();
     }
 
     void DiffDrive::InitializePseudoInv(){
         // Moore-Penrose left-pseudoinverse: ((A*A)^(-1))A*
-        leftPinv.p11 = -wheelTrack/wheelRadius;
-        leftPinv.p12 = 1.0/wheelRadius;
-        leftPinv.p13 = 0.0;
-        leftPinv.p21 = wheelTrack/wheelRadius;
-        leftPinv.p22 = 1.0/wheelRadius;
-        leftPinv.p23 = 0.0;
+        left_pinv.p11 = -wheel_track/wheel_radius;
+        left_pinv.p12 = 1.0/wheel_radius;
+        left_pinv.p13 = 0.0;
+        left_pinv.p21 = wheel_track/wheel_radius;
+        left_pinv.p22 = 1.0/wheel_radius;
+        left_pinv.p23 = 0.0;
     }
 
-    Transform2D DiffDrive::FKin(double radLeft, double radRight){
+    Transform2D DiffDrive::FKin(double rad_left, double rad_right){
         // get angle differences
-        auto angleDiffLeft = radLeft - phiLeft;
-        auto angleDiffRight = radRight - phiRight;
+        auto angle_diff_left = rad_left - phi_left;
+        auto angle_diff_right = rad_right - phi_right;
         // body twist: Lynch, Park - Modern Robotics 13.4
-        auto bodyTwist = Twist2D{wheelRadius/wheelTrack*(-angleDiffLeft+angleDiffRight), 
-                                 wheelRadius/2.0*(angleDiffLeft+angleDiffRight), 0.0};
+        auto bodyTwist = Twist2D{wheel_radius/wheel_track*(-angle_diff_left+angle_diff_right), 
+                                 wheel_radius*(angle_diff_left+angle_diff_right), 0.0};
         // integrate body twist to get Tbb'
         auto tf = integrate_twist(bodyTwist);
         // update config Twb*Tbb' = Twb'
         config *= tf;
         // track wheel angles
-        //phiLeft = normalize_angle(radLeft);
-        phiLeft = radLeft;
-        //phiRight = normalize_angle(radRight);
-        phiRight = radRight;
+        //phiLeft = normalize_angle(rad_left);
+        phi_left = rad_left;
+        //phiRight = normalize_angle(rad_right);
+        phi_right = rad_right;
         return config;
     }
 
@@ -42,9 +42,9 @@ namespace turtlelib {
         if (!almost_equal(twist.y, 0.0)){
             throw std::logic_error("wheels would slip for input twist!");
         }
-        auto velLeft = leftPinv.p11*twist.omega+leftPinv.p12*twist.x;
-        auto velRight = leftPinv.p21*twist.omega+leftPinv.p22*twist.x;
-        return wheelSpeeds{velLeft,velRight};
+        auto vel_left = left_pinv.p11*twist.omega+left_pinv.p12*twist.x;
+        auto vel_right = left_pinv.p21*twist.omega+left_pinv.p22*twist.x;
+        return {vel_left,vel_right};
     }
 
     Transform2D DiffDrive::getConfig(){
