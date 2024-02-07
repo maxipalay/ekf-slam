@@ -116,4 +116,19 @@ namespace turtlelib {
 
     }
 
+    double angle_diff(const double before, const double after){
+        // get the angle difference between after-before
+        // considering angle wrapping
+        // special cases are when wrapping around:
+        //      when going from positive to negative (e.g. 3.13rad to -3.13 rad)
+        //      when going from negative to positive (inverse)
+        if (after < -PI/2.0 && before > PI/2.0){
+            return 2.0*PI-before+after;
+        }
+        if (before < -PI/2.0 && after > PI/2.0){
+            return -2.0*PI-before+after;
+        }
+        return after-before;
+    }
+
 }

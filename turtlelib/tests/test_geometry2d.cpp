@@ -161,5 +161,41 @@ namespace turtlelib {
         
     }
 
+    TEST_CASE("angle diff", "[geometry]") {
+        double angle1{3.0*PI/4.0};
+        double angle2{-3.0*PI/4.0};
+        auto ang = angle_diff(angle1, angle2);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(2.0*PI/4.0, 1.0E-3));
+
+        ang = angle_diff(angle2, angle1);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(-2.0*PI/4.0, 1.0E-3));
+
+        angle1 = PI/4.0;
+        angle2 = -PI/4.0;
+        ang = angle_diff(angle1, angle2);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(-2.0*PI/4.0, 1.0E-3));
+
+        ang = angle_diff(angle2, angle1);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(2.0*PI/4.0, 1.0E-3));
+
+        angle1 = PI/4.0;
+        angle2 = PI/2.0;
+        ang = angle_diff(angle1, angle2);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(PI/4.0, 1.0E-3));
+
+        ang = angle_diff(angle2, angle1);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(-PI/4.0, 1.0E-3));
+
+        angle1 = -PI/4.0;
+        angle2 = -PI/2.0;
+        ang = angle_diff(angle1, angle2);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(-PI/4.0, 1.0E-3));
+
+        ang = angle_diff(angle2, angle1);
+        REQUIRE_THAT(ang, Catch::Matchers::WithinAbs(PI/4.0, 1.0E-3));
+
+        
+    }
+
 }
 

@@ -21,8 +21,14 @@ namespace turtlelib {
 
     Transform2D DiffDrive::FKin(double rad_left, double rad_right){
         // get angle differences
-        auto angle_diff_left = rad_left - phi_left;
-        auto angle_diff_right = rad_right - phi_right;
+        // auto angle_diff_left = rad_left - phi_left;
+        // auto angle_diff_right = rad_right - phi_right;
+        
+        // UPDATE ANGLE WRAPPING
+        auto angle_diff_left = turtlelib::angle_diff(phi_left, rad_left);
+        auto angle_diff_right = turtlelib::angle_diff(phi_right, rad_right);
+        // END UPDATE ANGLE WRAPPING
+
         // body twist: Lynch, Park - Modern Robotics 13.4
         auto bodyTwist = Twist2D{wheel_radius/wheel_track*(-angle_diff_left+angle_diff_right), 
                                  wheel_radius*(angle_diff_left+angle_diff_right), 0.0};
@@ -31,10 +37,13 @@ namespace turtlelib {
         // update config Twb*Tbb' = Twb'
         config *= tf;
         // track wheel angles
-        //phiLeft = normalize_angle(rad_left);
         phi_left = rad_left;
-        //phiRight = normalize_angle(rad_right);
         phi_right = rad_right;
+
+        // UPDATE ANGLE WRAPPING
+        phi_left = normalize_angle(rad_left);
+        phi_right = normalize_angle(rad_right);
+        // END UPDATE ANGLE WRAPPING
         return config;
     }
 

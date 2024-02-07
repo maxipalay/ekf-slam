@@ -105,15 +105,15 @@ private:
   void SensorDataCallback(const nuturtlebot_msgs::msg::SensorData & msg){
     auto timeNow = get_clock()->now(); // register current time
     // transform ticks to wheel angles
-    double left_angle_rad = msg.left_encoder / encoder_ticks_per_rad;
-    double right_angle_rad = msg.right_encoder / encoder_ticks_per_rad;
+    double left_angle_rad = msg.left_encoder / encoder_ticks_per_rad - turtlelib::PI;
+    double right_angle_rad = msg.right_encoder / encoder_ticks_per_rad - turtlelib::PI;
     if (!first_sensor_cb){
         // get the difference in ticks between now and previous message
         auto left_ticks_diff = msg.left_encoder - prev_left_encoder_ticks;
         auto right_ticks_diff = msg.right_encoder - prev_right_encoder_ticks;
         // turn this difference into radians
-        double left_rad_diff = left_ticks_diff / encoder_ticks_per_rad;
-        double right_rad_diff = right_ticks_diff / encoder_ticks_per_rad;
+        double left_rad_diff = turtlelib::normalize_angle(left_ticks_diff / encoder_ticks_per_rad);
+        double right_rad_diff = turtlelib::normalize_angle(right_ticks_diff / encoder_ticks_per_rad);
         auto leftSpeed = left_rad_diff / (timeNow - time_last_sensor_data).seconds();
         auto rightSpeed = right_rad_diff / (timeNow - time_last_sensor_data).seconds();
         publish_joint_states(timeNow, left_angle_rad, right_angle_rad, leftSpeed, rightSpeed);

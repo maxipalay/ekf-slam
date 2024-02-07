@@ -161,9 +161,9 @@ private:
     
     // update wheel positions and normalize
     wheel_pos_l += wheel_vel_l * timestep_seconds;
-    //wheel_pos_l = turtlelib::normalize_angle(wheel_pos_l);
+    wheel_pos_l = turtlelib::normalize_angle(wheel_pos_l);
     wheel_pos_r += wheel_vel_r * timestep_seconds;
-    //wheel_pos_r = turtlelib::normalize_angle(wheel_pos_r);
+    wheel_pos_r = turtlelib::normalize_angle(wheel_pos_r);
     // get updated transform
     auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
     // update the transform to be broadcast
@@ -179,8 +179,8 @@ private:
     // update sensor data publishing
     auto sensor_msg = nuturtlebot_msgs::msg::SensorData{};
     sensor_msg.stamp = get_clock()->now();
-    sensor_msg.left_encoder = encoder_ticks_per_rad * wheel_pos_l;
-    sensor_msg.right_encoder = encoder_ticks_per_rad * wheel_pos_r;
+    sensor_msg.left_encoder = encoder_ticks_per_rad * (wheel_pos_l+turtlelib::PI);
+    sensor_msg.right_encoder = encoder_ticks_per_rad * (wheel_pos_r+turtlelib::PI);
     sensor_publisher_->publish(sensor_msg);
   }
 

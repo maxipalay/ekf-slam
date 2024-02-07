@@ -182,7 +182,11 @@ namespace turtlelib
     /// \return the angle between the vectors (rad) - double
     double angle(const Vector2D & vec1, const Vector2D & vec2);
 
-
+    /// \brief return the difference in radian between two angles, preserving sign
+    /// \param before - first angle
+    /// \param vec2 - second angle
+    /// \return the angle between the after and before, preserving sign
+    double angle_diff(const double before, const double after);
 }
 
 #endif
