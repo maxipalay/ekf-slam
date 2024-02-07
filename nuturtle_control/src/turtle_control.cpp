@@ -108,27 +108,29 @@ private:
     // transform ticks to wheel angles
     double leftAngleRad = msg.left_encoder / encoderTicksPerRad;
     double rightAngleRad = msg.right_encoder / encoderTicksPerRad;
-
-    // get the difference in ticks between now and previous message
-    auto leftTickDiff = msg.left_encoder - lastLeftEncoderTicks;
-    auto rightTickDiff = msg.right_encoder - lastRightEncoderTicks;
-    // turn this difference into radians
-    double leftRadDiff = leftTickDiff / encoderTicksPerRad;
-    double rightRadDiff = rightTickDiff / encoderTicksPerRad;
-    auto leftSpeed = leftRadDiff / (timeNow - lastSensorData).seconds();
-    auto rightSpeed = rightRadDiff / (timeNow - lastSensorData).seconds();
-
+    if (!first_sensor_cb){
+        // get the difference in ticks between now and previous message
+        auto leftTickDiff = msg.left_encoder - lastLeftEncoderTicks;
+        auto rightTickDiff = msg.right_encoder - lastRightEncoderTicks;
+        // turn this difference into radians
+        double leftRadDiff = leftTickDiff / encoderTicksPerRad;
+        double rightRadDiff = rightTickDiff / encoderTicksPerRad;
+        auto leftSpeed = leftRadDiff / (timeNow - lastSensorData).seconds();
+        auto rightSpeed = rightRadDiff / (timeNow - lastSensorData).seconds();
+        publish_joint_states(timeNow, leftAngleRad, rightAngleRad, leftSpeed, rightSpeed);
+    } else {
+        first_sensor_cb = false;
+    }
     lastLeftEncoderTicks = msg.left_encoder;
     lastRightEncoderTicks = msg.right_encoder;
     lastSensorData = timeNow;
-    
-    publish_joint_states(leftAngleRad, rightAngleRad, leftSpeed, rightSpeed);
   }
 
-  void publish_joint_states(double leftPosRad, double rightPosRad, 
-                            double leftSpeedRads, double rightSpeedRads){
+  void publish_joint_states(const rclcpp::Time & time, const double leftPosRad, const double rightPosRad, 
+                            const double leftSpeedRads, const double rightSpeedRads){
     sensor_msgs::msg::JointState msg;
 
+    msg.header.stamp = time;
     msg.name = std::vector<std::string>({"wheel_left_joint", "wheel_right_joint"});
 
     msg.position = std::vector<double>({leftPosRad,rightPosRad});
@@ -144,7 +146,7 @@ private:
   int motorCmdMax;
   double motorCmdPerRadSec;
   double encoderTicksPerRad;
-
+  bool first_sensor_cb = true;
   turtlelib::DiffDrive ddrive{wheelTrack, wheelRadius};
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subCmdVel_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr pubWheelCmd_;
