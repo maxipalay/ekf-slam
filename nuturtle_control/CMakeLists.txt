@@ -19,6 +19,7 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(nuturtle_control_interfaces REQUIRED)
+find_package(std_srvs REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -41,13 +42,22 @@ add_executable(odometry src/odometry.cpp)
 ament_target_dependencies(odometry rclcpp geometry_msgs sensor_msgs nuturtlebot_msgs nav_msgs tf2 tf2_ros nuturtle_control_interfaces)
 target_link_libraries(odometry turtlelib::turtlelib)
 
+add_executable(circle src/circle.cpp)
+ament_target_dependencies(circle rclcpp geometry_msgs std_srvs nuturtle_control_interfaces)
+
 install(TARGETS
-  turtle_control odometry
+  turtle_control odometry circle
   DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files.
 install(DIRECTORY
   launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+# Install config files.
+install(DIRECTORY
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 
