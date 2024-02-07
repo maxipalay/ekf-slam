@@ -23,7 +23,6 @@ namespace turtlelib {
         // get angle differences
         auto angleDiffLeft = radLeft - phiLeft;
         auto angleDiffRight = radRight - phiRight;
-        angleDiffRight *= -1.0;
         // body twist: Lynch, Park - Modern Robotics 13.4
         auto bodyTwist = Twist2D{wheelRadius/wheelTrack*(-angleDiffLeft+angleDiffRight), 
                                  wheelRadius/2.0*(angleDiffLeft+angleDiffRight), 0.0};
@@ -32,8 +31,10 @@ namespace turtlelib {
         // update config Twb*Tbb' = Twb'
         config *= tf;
         // track wheel angles
-        phiLeft = normalize_angle(radLeft);
-        phiRight = normalize_angle(radRight);
+        //phiLeft = normalize_angle(radLeft);
+        phiLeft = radLeft;
+        //phiRight = normalize_angle(radRight);
+        phiRight = radRight;
         return config;
     }
 
@@ -43,8 +44,7 @@ namespace turtlelib {
         }
         auto velLeft = leftPinv.p11*twist.omega+leftPinv.p12*twist.x;
         auto velRight = leftPinv.p21*twist.omega+leftPinv.p22*twist.x;
-        // negative sign precedes due to the orientation of the wheel frame
-        return wheelSpeeds{velLeft,-velRight};
+        return wheelSpeeds{velLeft,velRight};
     }
 
     Transform2D DiffDrive::getConfig(){
