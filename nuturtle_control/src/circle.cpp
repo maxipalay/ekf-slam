@@ -39,23 +39,23 @@ public:
 
     // create main loop timer
     timer_ = create_wall_timer(
-      timerStep, std::bind(&Circle::timer_callback, this));
+      timerStep, std::bind(&Circle::timerCallback, this));
 
     // create services
     control_service_ =
       create_service<nuturtle_control_interfaces::srv::Control>(
       "control",
-      std::bind(&Circle::control_callback, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&Circle::controlCallback, this, std::placeholders::_1, std::placeholders::_2));
     
     reverse_service_ =
       create_service<std_srvs::srv::Empty>(
       "reverse",
-      std::bind(&Circle::reverse_callback, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&Circle::reverseCallback, this, std::placeholders::_1, std::placeholders::_2));
     
     stop_service_ =
       create_service<std_srvs::srv::Empty>(
       "stop",
-      std::bind(&Circle::stop_callback, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&Circle::stopCallback, this, std::placeholders::_1, std::placeholders::_2));
 
     // create publishers and subscribers
     vel_publisher_ = create_publisher<geometry_msgs::msg::Twist>(
@@ -65,7 +65,7 @@ public:
 
 private:
 
-  void timer_callback(){
+  void timerCallback(){
     if (!stop_ack){
         if (stop_flg){
             cmd_vel.linear.x = 0;
@@ -77,20 +77,20 @@ private:
     }
   }
 
-  void control_callback(const std::shared_ptr<nuturtle_control_interfaces::srv::Control::Request> request,
+  void controlCallback(const std::shared_ptr<nuturtle_control_interfaces::srv::Control::Request> request,
     std::shared_ptr<nuturtle_control_interfaces::srv::Control::Response>){
         stop_ack = false;
-        cmd_vel.linear.x = request->velocity;
-        cmd_vel.angular.z = request->velocity / request->radius;
+        cmd_vel.linear.x = request->velocity * request->radius;
+        cmd_vel.angular.z = request->velocity;
   }
 
-  void reverse_callback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
+  void reverseCallback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
     std::shared_ptr<std_srvs::srv::Empty::Response>){
     cmd_vel.linear.x *= -1.0;
     cmd_vel.angular.z *= -1.0;
   }
 
-  void stop_callback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
+  void stopCallback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
     std::shared_ptr<std_srvs::srv::Empty::Response>){
     stop_flg = true;
   }
@@ -100,7 +100,6 @@ private:
   geometry_msgs::msg::Twist cmd_vel;
   bool stop_flg;
   bool stop_ack;
-  
   rclcpp::Service<nuturtle_control_interfaces::srv::Control>::SharedPtr control_service_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reverse_service_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr stop_service_;
