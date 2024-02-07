@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
-    x0: -0.5
-    y0: 0.7
+    x0: 0.0
+    y0: 0.0
     theta0: 1.28
     arena_x_length: 10.0
     arena_y_length: 5.0

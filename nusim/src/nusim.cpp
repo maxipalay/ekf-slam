@@ -11,10 +11,17 @@
 ///     obstacles/x (std::vector<double>): x locations [m] of the obstacles
 ///     obstacles/y (std::vector<double>): y locations [m] of the obstacles
 ///     obstacles/r (std::vector<double>): radius [m] of the obstacles
+///     wheel_radius (double): radius of the turtlebot's wheels
+///     track_width (double): distance between the wheels
+///     motor_cmd_per_rad_sec (double): motor command units per rad/s of speed for wheels
+///     encoder_ticks_per_rad (double): number of encoder ticks per radian
 /// PUBLISHES:
 ///     ~/walls (visualization_msgs::msg::MarkerArray): marker array containing the markers of the environment walls
 ///     ~/obstacles (visualization_msgs::msg::MarkerArray): marker array containing the obstacles
 ///     ~/timestep (std_msgs::msg::UInt64): publishes the simulation time (timestep at rate frequency)
+///     /red/sensor_data (nuturtlebot_msgs::msg::SensorData): simulated encoder data
+/// SUBSCRIBES:
+///     /red/wheel_cmd (nuturtlebot_msgs::msg::WheelCommands): wheel commands
 /// SERVERS:
 ///     ~/reset (std_srvs::srv::Empty): resets turtlebot location and simulation time
 ///     ~/teleport (nusim_interfaces::srv::Teleport): teleports the turtlebot to a new location
@@ -34,6 +41,9 @@
 #include "tf2/LinearMath/Quaternion.h"
 #include "visualization_msgs/msg/marker_array.hpp"
 #include "visualization_msgs/msg/marker.hpp"
+#include "nuturtlebot_msgs/msg/wheel_commands.hpp"
+#include "nuturtlebot_msgs/msg/sensor_data.hpp"
+#include "turtlelib/diff_drive.hpp"
 
 using namespace std::chrono_literals;
 
@@ -54,6 +64,18 @@ public:
     declare_parameter("obstacles/x", std::vector<double>());
     declare_parameter("obstacles/y", std::vector<double>());
     declare_parameter("obstacles/r", std::vector<double>());
+    declare_parameter("wheel_radius", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    declare_parameter("track_width", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    declare_parameter("motor_cmd_per_rad_sec", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    declare_parameter("encoder_ticks_per_rad", rclcpp::ParameterType::PARAMETER_DOUBLE);
+
+    motor_cmd_per_rad_sec = get_parameter("motor_cmd_per_rad_sec").as_double();
+    const auto wheel_radius = get_parameter("wheel_radius").as_double();
+    const auto wheel_track = get_parameter("track_width").as_double();
+    encoder_ticks_per_rad = get_parameter("encoder_ticks_per_rad").as_double();
+
+    // instance diffDrive class
+    ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
 
     // check if the obstacles arrays are of corresponding sizes
     check_obstacles();
@@ -83,6 +105,9 @@ public:
     std::chrono::milliseconds timerStep =
       (std::chrono::milliseconds)(int)(1000.0 / get_parameter("rate").as_double());
 
+    //
+    timestep_seconds = 1.0 / get_parameter("rate").as_double();
+
     // create time publisher
     timestep_publisher_ = create_publisher<std_msgs::msg::UInt64>("~/timestep", 10);
 
@@ -107,8 +132,17 @@ public:
       "~/obstacles",
       markers_qos_);
 
+    // create wheel cmd subscriber
+    sub_wheel_cmd_ = create_subscription<nuturtlebot_msgs::msg::WheelCommands>(
+      "red/wheel_cmd", 10, std::bind(&NuSim::wheel_cmd_cb, this, std::placeholders::_1));
+
     // publish obstacles
     publish_obstacles();
+
+    // sensor publisher
+    sensor_publisher_ = create_publisher<nuturtlebot_msgs::msg::SensorData>(
+      "red/sensor_data",
+      10);
 
   }
 
@@ -123,11 +157,36 @@ private:
     timestep_++;
 
     // output timestep to screen
-    RCLCPP_INFO_STREAM(get_logger(), timestep_);
-
-    // broadcast transform
+    // RCLCPP_INFO_STREAM(get_logger(), timestep_);
+    
+    // update wheel positions and normalize
+    wheel_pos_l += wheel_vel_l * timestep_seconds;
+    //wheel_pos_l = turtlelib::normalize_angle(wheel_pos_l);
+    wheel_pos_r += wheel_vel_r * timestep_seconds;
+    //wheel_pos_r = turtlelib::normalize_angle(wheel_pos_r);
+    // get updated transform
+    auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
+    // update the transform to be broadcast
     turtle_pose_.header.stamp = get_clock()->now();
+    turtle_pose_.transform.translation.x = transform.translation().x;
+    turtle_pose_.transform.translation.y = transform.translation().y;
+    turtle_pose_.transform.rotation.x = 0.0; // will always be zero in planar rotations
+    turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
+    turtle_pose_.transform.rotation.z = std::sin(transform.rotation()/2.0);
+    turtle_pose_.transform.rotation.w = std::cos(transform.rotation()/2.0);
+    // broadcast transform
     tf_broadcaster_->sendTransform(turtle_pose_);
+    // update sensor data publishing
+    auto sensor_msg = nuturtlebot_msgs::msg::SensorData{};
+    sensor_msg.stamp = get_clock()->now();
+    sensor_msg.left_encoder = encoder_ticks_per_rad * wheel_pos_l;
+    sensor_msg.right_encoder = encoder_ticks_per_rad * wheel_pos_r;
+    sensor_publisher_->publish(sensor_msg);
+  }
+
+  void wheel_cmd_cb(const nuturtlebot_msgs::msg::WheelCommands & msg){
+    wheel_vel_l = static_cast<double>(msg.left_velocity) / motor_cmd_per_rad_sec;
+    wheel_vel_r = static_cast<double>(msg.right_velocity) / motor_cmd_per_rad_sec;
   }
 
   // callback for the reset service
@@ -299,7 +358,9 @@ private:
     // publish
     walls_publisher_->publish(marker_array);
   }
-
+  
+  double timestep_seconds;
+  turtlelib::DiffDrive ddrive{0.0, 0.0};
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr timestep_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr walls_publisher_;
@@ -309,6 +370,15 @@ private:
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   geometry_msgs::msg::TransformStamped turtle_pose_;
   u_int64_t timestep_;
+
+  rclcpp::Subscription<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr sub_wheel_cmd_;
+  rclcpp::Publisher<nuturtlebot_msgs::msg::SensorData>::SharedPtr sensor_publisher_;
+  double motor_cmd_per_rad_sec{};
+  double wheel_vel_r{};
+  double wheel_vel_l{};
+  double wheel_pos_r{};
+  double wheel_pos_l{};
+  int encoder_ticks_per_rad{};
 
 };
 
