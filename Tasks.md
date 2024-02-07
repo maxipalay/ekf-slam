@@ -33,6 +33,7 @@
 * Task C.5 (cylindrical obstacles)
 * Task C.6 (nusim launch)
 * Task C.7 (README.md)
+* Task C.7 (Turtle Drive)
 
 ## Task D (Kinematics) (TODO)
 * Task D.1 (DiffDrive class)
@@ -41,3 +42,7 @@ TODO: Task D.3 (Documentation)
 
 ## Task E (Robot Control)
 * Task E.1 (Turtle interface)
+* Task E.2 (Odometry Node)
+* Task E.3 (Circle)
+TODO: Task E.4 (ROS API Testing)
+TODO: Task E.5 (Launchfile)
