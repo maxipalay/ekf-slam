@@ -138,15 +138,15 @@ namespace turtlelib {
 
         auto speeds = ddrive.IKin(twist);
 
-        REQUIRE_THAT(speeds.left, Catch::Matchers::WithinAbs(0.1*PI/4.0/(0.2*PI)*2.0*PI, 1.0E-8));
-        REQUIRE_THAT(speeds.right, Catch::Matchers::WithinAbs(-0.1*PI/4.0/(0.2*PI)*2.0*PI, 1.0E-8));
+        REQUIRE_THAT(speeds.left, Catch::Matchers::WithinAbs(0.1*PI/4.0/(0.2*PI)*PI, 1.0E-8));
+        REQUIRE_THAT(speeds.right, Catch::Matchers::WithinAbs(-0.1*PI/4.0/(0.2*PI)*PI, 1.0E-8));
 
         twist = Twist2D{PI/2.0,0.0,0.0};
 
         speeds = ddrive.IKin(twist);
 
-        REQUIRE_THAT(speeds.left, Catch::Matchers::WithinAbs(-0.1*PI/4.0/(0.2*PI)*2.0*PI, 1.0E-8));
-        REQUIRE_THAT(speeds.right, Catch::Matchers::WithinAbs(0.1*PI/4.0/(0.2*PI)*2.0*PI, 1.0E-8));
+        REQUIRE_THAT(speeds.left, Catch::Matchers::WithinAbs(-0.1*PI/4.0/(0.2*PI)*PI, 1.0E-8));
+        REQUIRE_THAT(speeds.right, Catch::Matchers::WithinAbs(0.1*PI/4.0/(0.2*PI)*PI, 1.0E-8));
     }
 
     // missing arc test case for IKin

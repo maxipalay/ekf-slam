@@ -11,22 +11,22 @@ namespace turtlelib {
 
     void DiffDrive::InitializePseudoInv(){
         // Moore-Penrose left-pseudoinverse: ((A*A)^(-1))A*
-        left_pinv.p11 = -wheel_track/wheel_radius;
+        left_pinv.p11 = -wheel_track/2.0/wheel_radius;
         left_pinv.p12 = 1.0/wheel_radius;
         left_pinv.p13 = 0.0;
-        left_pinv.p21 = wheel_track/wheel_radius;
+        left_pinv.p21 = wheel_track/2.0/wheel_radius;
         left_pinv.p22 = 1.0/wheel_radius;
         left_pinv.p23 = 0.0;
     }
 
     Transform2D DiffDrive::FKin(double rad_left, double rad_right){
         // get angle differences
-        // auto angle_diff_left = rad_left - phi_left;
-        // auto angle_diff_right = rad_right - phi_right;
+        auto angle_diff_left = rad_left - phi_left;
+        auto angle_diff_right = rad_right - phi_right;
         
         // UPDATE ANGLE WRAPPING
-        auto angle_diff_left = turtlelib::angle_diff(phi_left, rad_left);
-        auto angle_diff_right = turtlelib::angle_diff(phi_right, rad_right);
+        // auto angle_diff_left = turtlelib::angle_diff(phi_left, rad_left);
+        // auto angle_diff_right = turtlelib::angle_diff(phi_right, rad_right);
         // END UPDATE ANGLE WRAPPING
 
         // body twist: Lynch, Park - Modern Robotics 13.4
@@ -41,8 +41,8 @@ namespace turtlelib {
         phi_right = rad_right;
 
         // UPDATE ANGLE WRAPPING
-        phi_left = normalize_angle(rad_left);
-        phi_right = normalize_angle(rad_right);
+        // phi_left = normalize_angle(rad_left);
+        // phi_right = normalize_angle(rad_right);
         // END UPDATE ANGLE WRAPPING
         return config;
     }
