@@ -121,8 +121,8 @@ namespace turtlelib
     /// HINT: This function should be implemented in terms of *=
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
 
-    /// \brief
-    /// \param input twist
+    /// \brief Integrate a Twist
+    /// \param twist - A Twist2D
     /// \return returns the integrated twist (dt = 1)
     Transform2D integrate_twist(Twist2D twist);
 

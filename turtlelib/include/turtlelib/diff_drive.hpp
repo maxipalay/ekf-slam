@@ -10,7 +10,9 @@ namespace turtlelib {
 
     /// \brief struct that represents wheel speeds
     struct wheelSpeeds {
+        /// \brief left wheel speed
         double left{};
+        /// \brief right wheel speed
         double right{};
     };
     

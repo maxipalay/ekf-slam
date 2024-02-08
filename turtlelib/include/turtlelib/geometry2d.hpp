@@ -106,7 +106,7 @@ namespace turtlelib
         Vector2D & operator-=(const Vector2D & rhs);
 
         /// \brief multiply vector by scalar, modifying the lhs
-        /// \param rhs - Vector2D
+        /// \param scalar - multiplier
         /// \return a reference to the modified vector
         Vector2D & operator*=(const double & scalar);
 
@@ -144,11 +144,13 @@ namespace turtlelib
     std::istream & operator>>(std::istream & is, Vector2D & v);
 
     /// \brief add vectors, returning a new vector
+    /// \param lhs - Vector2D
     /// \param rhs - Vector2D
     /// \return a reference to the modified vector
     Vector2D operator+(Vector2D lhs, const Vector2D & rhs);
 
     /// \brief subtract vectors, returning a new vector
+    /// \param lhs - Vector2D
     /// \param rhs - Vector2D
     /// \return a reference to the modified vector
     Vector2D operator-(Vector2D lhs, const Vector2D & rhs);
@@ -184,7 +186,7 @@ namespace turtlelib
 
     /// \brief return the difference in radian between two angles, preserving sign
     /// \param before - first angle
-    /// \param vec2 - second angle
+    /// \param after - second angle
     /// \return the angle between the after and before, preserving sign
     double angle_diff(const double before, const double after);
 }
