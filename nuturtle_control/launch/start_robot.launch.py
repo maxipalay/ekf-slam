@@ -13,6 +13,7 @@ from launch.actions.declare_launch_argument import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch_ros.parameter_descriptions import ParameterFile
 
+
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -58,11 +59,11 @@ def generate_launch_description():
             package='nusim',
             executable='nusim',
             parameters=[ParameterFile(PathJoinSubstitution(
-                    [FindPackageShare("nusim"), "config/", 'basic_world.yaml'])),
-                    ParameterFile(PathJoinSubstitution(
-                    [FindPackageShare(LaunchConfiguration('robot_params_pkg')),
-                     LaunchConfiguration('robot_params_path')]))
-                    ],
+                            [FindPackageShare("nusim"), "config/", 'basic_world.yaml'])),
+                        ParameterFile(PathJoinSubstitution(
+                            [FindPackageShare(LaunchConfiguration('robot_params_pkg')),
+                             LaunchConfiguration('robot_params_path')]))
+                        ],
             condition=IfCondition(PythonExpression(
                 ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\''])),
             remappings=[('/red/sensor_data', '/sensor_data'),
@@ -79,7 +80,7 @@ def generate_launch_description():
             condition=IfCondition(PythonExpression(
                 ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\''
                  ' or ', '\'', LaunchConfiguration('robot'), '\'', '== \'localhost\''])),
-        ),    
+        ),
         Node(
             package='nuturtle_control',
             executable='odometry',
@@ -87,10 +88,10 @@ def generate_launch_description():
                 ParameterFile(PathJoinSubstitution(
                     [FindPackageShare(LaunchConfiguration('robot_params_pkg')),
                      LaunchConfiguration('robot_params_path')])),
-                {"body_id":"blue/base_footprint",
-                 "odom_id":"odom",
-                 "wheel_left":"blue/wheel_left_joint",
-                 "wheel_right":"blue/wheel_right_joint"}
+                {"body_id": "blue/base_footprint",
+                 "odom_id": "odom",
+                 "wheel_left": "blue/wheel_left_joint",
+                 "wheel_right": "blue/wheel_right_joint"}
             ],
             condition=IfCondition(PythonExpression(
                 ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\'',
@@ -109,23 +110,23 @@ def generate_launch_description():
             condition=IfCondition(PythonExpression(
                 ['\'', LaunchConfiguration('cmd_src'), '\'', '== \'circle\''])),
         ),
-        ############################### Begin_Citation [1] ############################
+        # Begin_Citation [1] #
         Node(
             package='turtlebot3_teleop',
             executable='teleop_keyboard',
             condition=IfCondition(PythonExpression(
                 ['\'', LaunchConfiguration('cmd_src'), '\'', '== \'teleop\''])),
             output='screen',
-            prefix = 'xterm -e'
+            prefix='xterm -e'
         ),
-        ############################### End_Citation [1]  #############################
+        # End_Citation [1]  #
         Node(
             package="rviz2",
             executable="rviz2",
             condition=IfCondition(PythonExpression(
-                ['\'', LaunchConfiguration('use_rviz'), '\'', '== \'true\'',' and ',
+                ['\'', LaunchConfiguration('use_rviz'), '\'', '== \'true\'', ' and ',
                  '\'', LaunchConfiguration('robot'), '\'', '== \'nusim\'', ' or ',
-                 '\'', LaunchConfiguration('use_rviz'), '\'', '== \'true\'',' and ',
+                 '\'', LaunchConfiguration('use_rviz'), '\'', '== \'true\'', ' and ',
                  '\'', LaunchConfiguration('robot'), '\'', '== \'none\''])),
             arguments=["-d", PathJoinSubstitution(
                     [FindPackageShare("nuturtle_control"), "config/",
@@ -142,11 +143,12 @@ def generate_launch_description():
                         [FindPackageShare("nuturtle_description"), '/launch',
                          '/load_one.launch.py']
                     ),
-                    launch_arguments=[["use_rviz", "false"], ["color", "red"], ["use_jsp", "true"]],
-                    condition = IfCondition(PythonExpression(
-                ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\''])),
-                    ),
-                ]
+                    launch_arguments=[["use_rviz", "false"], ["color", "red"],
+                                      ["use_jsp", "true"]],
+                    condition=IfCondition(PythonExpression(
+                        ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\''])),
+                ),
+            ]
         ),
         GroupAction(
             actions=[
@@ -157,12 +159,12 @@ def generate_launch_description():
                         [FindPackageShare("nuturtle_description"), '/launch',
                          '/load_one.launch.py']
                     ),
-                    launch_arguments=[["use_rviz", "false"], ["color", "blue"], ["use_jsp", "false"]],
-                    condition = IfCondition(PythonExpression(
-                ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\'',
-                 ' or ', '\'', LaunchConfiguration('robot'), '\'', '== \'none\''])),
-                    ),
-                ],
-        ),                
-        
+                    launch_arguments=[["use_rviz", "false"], ["color", "blue"],
+                                      ["use_jsp", "false"]],
+                    condition=IfCondition(PythonExpression(
+                        ['\'', LaunchConfiguration('robot'), '\'', '== \'nusim\'',
+                         ' or ', '\'', LaunchConfiguration('robot'), '\'', '== \'none\''])),
+                ),
+            ],
+        ),
     ])

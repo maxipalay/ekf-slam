@@ -68,7 +68,7 @@ public:
     odom_msg.child_frame_id = body_id;
     odom_transform.header.frame_id = odom_id;
     odom_transform.child_frame_id = body_id;
-    
+
     // instance diffDrive class
     ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
 
@@ -79,7 +79,7 @@ public:
     // create publishers and subscribers
     sub_joint_states_ = create_subscription<sensor_msgs::msg::JointState>(
       "joint_states", 10, std::bind(&Odometry::jointStateCallback, this, std::placeholders::_1));
-    
+
     pub_odom_ = create_publisher<nav_msgs::msg::Odometry>("odom", 10);
 
     // create services
@@ -91,28 +91,30 @@ public:
     // create main loop timer
     timer_ = create_wall_timer(
       timer_step, std::bind(&Odometry::timerCallback, this));
-    
+
   }
 
 private:
-  void timerCallback(){
+  void timerCallback()
+  {
     pub_odom_->publish(odom_msg);
     tf_broadcaster_->sendTransform(odom_transform);
   }
- 
+
   void poseCallback(
     const std::shared_ptr<nuturtle_control_interfaces::srv::InitialPose::Request> request,
     std::shared_ptr<nuturtle_control_interfaces::srv::InitialPose::Response>
-  ){
+  )
+  {
     // restart the ddrive class
     ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
-    prev_transform = turtlelib::Transform2D{{request->x,request->y},request->theta};
+    prev_transform = turtlelib::Transform2D{{request->x, request->y}, request->theta};
     odom_msg.pose.pose.position.x = request->x;
     odom_msg.pose.pose.position.y = request->y;
     odom_msg.pose.pose.orientation.x = 0.0; // will always be zero in planar rotations
     odom_msg.pose.pose.orientation.y = 0.0; // will always be zero in planar rotations
-    odom_msg.pose.pose.orientation.z = std::sin(request->theta/2.0);
-    odom_msg.pose.pose.orientation.w = std::cos(request->theta/2.0);
+    odom_msg.pose.pose.orientation.z = std::sin(request->theta / 2.0);
+    odom_msg.pose.pose.orientation.w = std::cos(request->theta / 2.0);
 
     odom_transform.transform.translation.x = odom_msg.pose.pose.position.x;
     odom_transform.transform.translation.y = odom_msg.pose.pose.position.y;
@@ -123,35 +125,38 @@ private:
 
   }
 
-  void jointStateCallback(const sensor_msgs::msg::JointState & msg){
+  void jointStateCallback(const sensor_msgs::msg::JointState & msg)
+  {
     auto time_now = get_clock()->now();
     // we should be using the names provided (name_wheel_left, name_Wheel_right)
     // to find out the indices of those in the vector
     auto transform = ddrive.FKin(msg.position.at(0), msg.position.at(1));
-    if (!first_joints_cb){
-        auto dt = (time_now - time_last_joint_data).seconds();
-        odom_msg.header.stamp = time_now;
-        odom_msg.pose.pose.position.x = transform.translation().x;
-        odom_msg.pose.pose.position.y = transform.translation().y;
-        odom_msg.pose.pose.orientation.x = 0.0; // will always be zero in planar rotations
-        odom_msg.pose.pose.orientation.y = 0.0; // will always be zero in planar rotations
-        odom_msg.pose.pose.orientation.z = std::sin(transform.rotation()/2.0);
-        odom_msg.pose.pose.orientation.w = std::cos(transform.rotation()/2.0);
-        odom_msg.twist.twist.linear.x = (transform.translation().x-prev_transform.translation().x)/(dt);
-        odom_msg.twist.twist.linear.y = (transform.translation().y-prev_transform.translation().y)/(dt);
-        odom_msg.twist.twist.angular.z = (transform.rotation()-prev_transform.rotation())/(dt);
-        // pub_odom_->publish(odom_msg);
+    if (!first_joints_cb) {
+      auto dt = (time_now - time_last_joint_data).seconds();
+      odom_msg.header.stamp = time_now;
+      odom_msg.pose.pose.position.x = transform.translation().x;
+      odom_msg.pose.pose.position.y = transform.translation().y;
+      odom_msg.pose.pose.orientation.x = 0.0;   // will always be zero in planar rotations
+      odom_msg.pose.pose.orientation.y = 0.0;   // will always be zero in planar rotations
+      odom_msg.pose.pose.orientation.z = std::sin(transform.rotation() / 2.0);
+      odom_msg.pose.pose.orientation.w = std::cos(transform.rotation() / 2.0);
+      odom_msg.twist.twist.linear.x = (transform.translation().x - prev_transform.translation().x) /
+        (dt);
+      odom_msg.twist.twist.linear.y = (transform.translation().y - prev_transform.translation().y) /
+        (dt);
+      odom_msg.twist.twist.angular.z = (transform.rotation() - prev_transform.rotation()) / (dt);
+      // pub_odom_->publish(odom_msg);
 
-        odom_transform.header.stamp = time_now;
-        odom_transform.transform.translation.x = odom_msg.pose.pose.position.x;
-        odom_transform.transform.translation.y = odom_msg.pose.pose.position.y;
-        odom_transform.transform.rotation.x = odom_msg.pose.pose.orientation.x;
-        odom_transform.transform.rotation.y = odom_msg.pose.pose.orientation.y;
-        odom_transform.transform.rotation.z = odom_msg.pose.pose.orientation.z;
-        odom_transform.transform.rotation.w = odom_msg.pose.pose.orientation.w;
-        // tf_broadcaster_->sendTransform(odom_transform);
+      odom_transform.header.stamp = time_now;
+      odom_transform.transform.translation.x = odom_msg.pose.pose.position.x;
+      odom_transform.transform.translation.y = odom_msg.pose.pose.position.y;
+      odom_transform.transform.rotation.x = odom_msg.pose.pose.orientation.x;
+      odom_transform.transform.rotation.y = odom_msg.pose.pose.orientation.y;
+      odom_transform.transform.rotation.z = odom_msg.pose.pose.orientation.z;
+      odom_transform.transform.rotation.w = odom_msg.pose.pose.orientation.w;
+      // tf_broadcaster_->sendTransform(odom_transform);
     } else {
-        first_joints_cb = false;
+      first_joints_cb = false;
     }
     time_last_joint_data = time_now;
     prev_transform = transform;

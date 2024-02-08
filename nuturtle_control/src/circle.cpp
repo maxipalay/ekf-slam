@@ -46,12 +46,12 @@ public:
       create_service<nuturtle_control_interfaces::srv::Control>(
       "control",
       std::bind(&Circle::controlCallback, this, std::placeholders::_1, std::placeholders::_2));
-    
+
     reverse_service_ =
       create_service<std_srvs::srv::Empty>(
       "reverse",
       std::bind(&Circle::reverseCallback, this, std::placeholders::_1, std::placeholders::_2));
-    
+
     stop_service_ =
       create_service<std_srvs::srv::Empty>(
       "stop",
@@ -60,41 +60,47 @@ public:
     // create publishers and subscribers
     vel_publisher_ = create_publisher<geometry_msgs::msg::Twist>(
       "cmd_vel", 10);
-    
+
   }
 
 private:
-
-  void timerCallback(){
-    if (!stop_ack){
-        if (stop_flg){
-            cmd_vel.linear.x = 0;
-            cmd_vel.angular.z = 0;
-            stop_ack = true;
-            stop_flg = false;
-        }
-        vel_publisher_->publish(cmd_vel);
+  void timerCallback()
+  {
+    if (!stop_ack) {
+      if (stop_flg) {
+        cmd_vel.linear.x = 0;
+        cmd_vel.angular.z = 0;
+        stop_ack = true;
+        stop_flg = false;
+      }
+      vel_publisher_->publish(cmd_vel);
     }
   }
 
-  void controlCallback(const std::shared_ptr<nuturtle_control_interfaces::srv::Control::Request> request,
-    std::shared_ptr<nuturtle_control_interfaces::srv::Control::Response>){
-        stop_ack = false;
-        cmd_vel.linear.x = request->velocity * request->radius;
-        cmd_vel.angular.z = request->velocity;
+  void controlCallback(
+    const std::shared_ptr<nuturtle_control_interfaces::srv::Control::Request> request,
+    std::shared_ptr<nuturtle_control_interfaces::srv::Control::Response>)
+  {
+    stop_ack = false;
+    cmd_vel.linear.x = request->velocity * request->radius;
+    cmd_vel.angular.z = request->velocity;
   }
 
-  void reverseCallback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
-    std::shared_ptr<std_srvs::srv::Empty::Response>){
+  void reverseCallback(
+    const std::shared_ptr<std_srvs::srv::Empty::Request>,
+    std::shared_ptr<std_srvs::srv::Empty::Response>)
+  {
     cmd_vel.linear.x *= -1.0;
     cmd_vel.angular.z *= -1.0;
   }
 
-  void stopCallback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
-    std::shared_ptr<std_srvs::srv::Empty::Response>){
+  void stopCallback(
+    const std::shared_ptr<std_srvs::srv::Empty::Request>,
+    std::shared_ptr<std_srvs::srv::Empty::Response>)
+  {
     stop_flg = true;
   }
- 
+
   rclcpp::TimerBase::SharedPtr timer_;
   u_int64_t timestep_;
   geometry_msgs::msg::Twist cmd_vel;

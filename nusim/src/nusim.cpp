@@ -158,7 +158,7 @@ private:
 
     // output timestep to screen
     // RCLCPP_INFO_STREAM(get_logger(), timestep_);
-    
+
     // update wheel positions and normalize
     wheel_pos_l += wheel_vel_l * timestep_seconds;
     //wheel_pos_l = turtlelib::normalize_angle(wheel_pos_l);
@@ -172,8 +172,8 @@ private:
     turtle_pose_.transform.translation.y = transform.translation().y;
     turtle_pose_.transform.rotation.x = 0.0; // will always be zero in planar rotations
     turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
-    turtle_pose_.transform.rotation.z = std::sin(transform.rotation()/2.0);
-    turtle_pose_.transform.rotation.w = std::cos(transform.rotation()/2.0);
+    turtle_pose_.transform.rotation.z = std::sin(transform.rotation() / 2.0);
+    turtle_pose_.transform.rotation.w = std::cos(transform.rotation() / 2.0);
     // broadcast transform
     tf_broadcaster_->sendTransform(turtle_pose_);
     // update sensor data publishing
@@ -184,7 +184,8 @@ private:
     sensor_publisher_->publish(sensor_msg);
   }
 
-  void wheel_cmd_cb(const nuturtlebot_msgs::msg::WheelCommands & msg){
+  void wheel_cmd_cb(const nuturtlebot_msgs::msg::WheelCommands & msg)
+  {
     wheel_vel_l = static_cast<double>(msg.left_velocity) / motor_cmd_per_rad_sec;
     wheel_vel_r = static_cast<double>(msg.right_velocity) / motor_cmd_per_rad_sec;
   }
@@ -358,7 +359,7 @@ private:
     // publish
     walls_publisher_->publish(marker_array);
   }
-  
+
   double timestep_seconds;
   turtlelib::DiffDrive ddrive{0.0, 0.0};
   rclcpp::TimerBase::SharedPtr timer_;

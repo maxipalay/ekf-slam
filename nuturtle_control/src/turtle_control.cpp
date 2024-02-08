@@ -7,7 +7,6 @@
 ///     motor_cmd_max (integer): motor command absolute maximum limit
 ///     motor_cmd_per_rad_sec (double): motor command units per rad/s of speed for wheels
 ///     encoder_ticks_per_rad (double): number of encoder ticks per radian
-
 /// PUBLISHES:
 ///     wheel_cmd (nuturtlebot_msgs::msg::WheelCommands): wheel commands for the turtlebot
 ///     joint_states (sensor_msgs::msg::JointState): wheels position
@@ -55,20 +54,21 @@ public:
 
     // create publishers and subscribers
     pub_wheel_cmd_ = create_publisher<nuturtlebot_msgs::msg::WheelCommands>("wheel_cmd", 10);
-    
+
     pub_joint_states_ = create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
 
     sub_cmd_vel_ = create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 10, std::bind(&TurtleControl::CmdVelCallback, this, std::placeholders::_1));
-    
+
     sub_sensor_data_ = create_subscription<nuturtlebot_msgs::msg::SensorData>(
-      "sensor_data", 10, std::bind(&TurtleControl::SensorDataCallback, this, std::placeholders::_1));
-    
+      "sensor_data", 10,
+      std::bind(&TurtleControl::SensorDataCallback, this, std::placeholders::_1));
+
   }
 
 private:
-
-  void CmdVelCallback(const geometry_msgs::msg::Twist & msg){
+  void CmdVelCallback(const geometry_msgs::msg::Twist & msg)
+  {
     // create a 2D Twist
     auto twist = turtlelib::Twist2D{msg.angular.z, msg.linear.x, msg.linear.y};
     // convert to wheel speeds (rad/s)
@@ -83,7 +83,8 @@ private:
     publish_wheel_commands(cmd_left, cmd_right);
   }
 
-  void publish_wheel_commands(const int left, const int right){
+  void publish_wheel_commands(const int left, const int right)
+  {
     // construct message
     nuturtlebot_msgs::msg::WheelCommands cmd_msg;
     cmd_msg.left_velocity = left;
@@ -92,64 +93,68 @@ private:
     pub_wheel_cmd_->publish(cmd_msg);
   }
 
-  int limit_speed(const int wheel_cmd){
-    if (wheel_cmd > motor_cmd_max){
-        return motor_cmd_max;
+  int limit_speed(const int wheel_cmd)
+  {
+    if (wheel_cmd > motor_cmd_max) {
+      return motor_cmd_max;
     }
-    if (wheel_cmd < -motor_cmd_max){
-        return -motor_cmd_max;
+    if (wheel_cmd < -motor_cmd_max) {
+      return -motor_cmd_max;
     }
     return wheel_cmd;
   }
 
-  void SensorDataCallback(const nuturtlebot_msgs::msg::SensorData & msg){
+  void SensorDataCallback(const nuturtlebot_msgs::msg::SensorData & msg)
+  {
     auto timeNow = get_clock()->now(); // register current time
-    
-    
-    if (!first_sensor_cb){
-        double left_encoder = msg.left_encoder - encoder_offset_left;
-        double right_encoder = msg.right_encoder - encoder_offset_right;
-        // transform ticks to wheel angles
-        double left_angle_rad = left_encoder / encoder_ticks_per_rad; // - turtlelib::PI;
-        double right_angle_rad = right_encoder / encoder_ticks_per_rad; // - turtlelib::PI;
-        // get the difference in ticks between now and previous message
-        auto left_ticks_diff = left_encoder - prev_left_encoder_ticks;
-        auto right_ticks_diff = right_encoder - prev_right_encoder_ticks;
-        // turn this difference into radians
-        //double left_rad_diff = turtlelib::normalize_angle(left_ticks_diff / encoder_ticks_per_rad);
-        //double right_rad_diff = turtlelib::normalize_angle(right_ticks_diff / encoder_ticks_per_rad);
-        double left_rad_diff = left_ticks_diff / encoder_ticks_per_rad;
-        double right_rad_diff = right_ticks_diff / encoder_ticks_per_rad;
 
-        auto leftSpeed = left_rad_diff / (timeNow - time_last_sensor_data).seconds();
-        auto rightSpeed = right_rad_diff / (timeNow - time_last_sensor_data).seconds();
-        publish_joint_states(timeNow, left_angle_rad, right_angle_rad, leftSpeed, rightSpeed);
-        prev_left_encoder_ticks = left_encoder;
-        prev_right_encoder_ticks = right_encoder;
+
+    if (!first_sensor_cb) {
+      double left_encoder = msg.left_encoder - encoder_offset_left;
+      double right_encoder = msg.right_encoder - encoder_offset_right;
+      // transform ticks to wheel angles
+      double left_angle_rad = left_encoder / encoder_ticks_per_rad;   // - turtlelib::PI;
+      double right_angle_rad = right_encoder / encoder_ticks_per_rad;   // - turtlelib::PI;
+      // get the difference in ticks between now and previous message
+      auto left_ticks_diff = left_encoder - prev_left_encoder_ticks;
+      auto right_ticks_diff = right_encoder - prev_right_encoder_ticks;
+      // turn this difference into radians
+      //double left_rad_diff = turtlelib::normalize_angle(left_ticks_diff / encoder_ticks_per_rad);
+      //double right_rad_diff = turtlelib::normalize_angle(right_ticks_diff / encoder_ticks_per_rad);
+      double left_rad_diff = left_ticks_diff / encoder_ticks_per_rad;
+      double right_rad_diff = right_ticks_diff / encoder_ticks_per_rad;
+
+      auto leftSpeed = left_rad_diff / (timeNow - time_last_sensor_data).seconds();
+      auto rightSpeed = right_rad_diff / (timeNow - time_last_sensor_data).seconds();
+      publish_joint_states(timeNow, left_angle_rad, right_angle_rad, leftSpeed, rightSpeed);
+      prev_left_encoder_ticks = left_encoder;
+      prev_right_encoder_ticks = right_encoder;
     } else {
-        first_sensor_cb = false;
-        encoder_offset_left = msg.left_encoder;
-        encoder_offset_right = msg.right_encoder;
+      first_sensor_cb = false;
+      encoder_offset_left = msg.left_encoder;
+      encoder_offset_right = msg.right_encoder;
     }
-    
+
     time_last_sensor_data = timeNow;
   }
 
-  void publish_joint_states(const rclcpp::Time & time, const double left_pos_rad, const double right_pos_rad, 
-                            const double left_speed_rads, const double right_speed_rads){
+  void publish_joint_states(
+    const rclcpp::Time & time, const double left_pos_rad, const double right_pos_rad,
+    const double left_speed_rads, const double right_speed_rads)
+  {
     sensor_msgs::msg::JointState msg;
 
     msg.header.stamp = time;
     msg.name = std::vector<std::string>({"wheel_left_joint", "wheel_right_joint"});
 
-    msg.position = std::vector<double>({left_pos_rad,right_pos_rad});
+    msg.position = std::vector<double>({left_pos_rad, right_pos_rad});
 
     msg.velocity = std::vector<double>({left_speed_rads, right_speed_rads});
 
     pub_joint_states_->publish(msg);
   }
 
-  
+
   double wheel_radius;
   double wheel_track;
   int motor_cmd_max;
