@@ -104,24 +104,34 @@ private:
 
   void SensorDataCallback(const nuturtlebot_msgs::msg::SensorData & msg){
     auto timeNow = get_clock()->now(); // register current time
-    // transform ticks to wheel angles
-    double left_angle_rad = msg.left_encoder / encoder_ticks_per_rad - turtlelib::PI;
-    double right_angle_rad = msg.right_encoder / encoder_ticks_per_rad - turtlelib::PI;
+    
+    
     if (!first_sensor_cb){
+        double left_encoder = msg.left_encoder - encoder_offset_left;
+        double right_encoder = msg.right_encoder - encoder_offset_right;
+        // transform ticks to wheel angles
+        double left_angle_rad = left_encoder / encoder_ticks_per_rad; // - turtlelib::PI;
+        double right_angle_rad = right_encoder / encoder_ticks_per_rad; // - turtlelib::PI;
         // get the difference in ticks between now and previous message
-        auto left_ticks_diff = msg.left_encoder - prev_left_encoder_ticks;
-        auto right_ticks_diff = msg.right_encoder - prev_right_encoder_ticks;
+        auto left_ticks_diff = left_encoder - prev_left_encoder_ticks;
+        auto right_ticks_diff = right_encoder - prev_right_encoder_ticks;
         // turn this difference into radians
-        double left_rad_diff = turtlelib::normalize_angle(left_ticks_diff / encoder_ticks_per_rad);
-        double right_rad_diff = turtlelib::normalize_angle(right_ticks_diff / encoder_ticks_per_rad);
+        //double left_rad_diff = turtlelib::normalize_angle(left_ticks_diff / encoder_ticks_per_rad);
+        //double right_rad_diff = turtlelib::normalize_angle(right_ticks_diff / encoder_ticks_per_rad);
+        double left_rad_diff = left_ticks_diff / encoder_ticks_per_rad;
+        double right_rad_diff = right_ticks_diff / encoder_ticks_per_rad;
+
         auto leftSpeed = left_rad_diff / (timeNow - time_last_sensor_data).seconds();
         auto rightSpeed = right_rad_diff / (timeNow - time_last_sensor_data).seconds();
         publish_joint_states(timeNow, left_angle_rad, right_angle_rad, leftSpeed, rightSpeed);
+        prev_left_encoder_ticks = left_encoder;
+        prev_right_encoder_ticks = right_encoder;
     } else {
         first_sensor_cb = false;
+        encoder_offset_left = msg.left_encoder;
+        encoder_offset_right = msg.right_encoder;
     }
-    prev_left_encoder_ticks = msg.left_encoder;
-    prev_right_encoder_ticks = msg.right_encoder;
+    
     time_last_sensor_data = timeNow;
   }
 
@@ -146,6 +156,8 @@ private:
   double motor_cmd_per_rad_sec;
   double encoder_ticks_per_rad;
   bool first_sensor_cb = true;
+  int encoder_offset_left;
+  int encoder_offset_right;
   turtlelib::DiffDrive ddrive{wheel_track, wheel_radius};
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_vel_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr pub_wheel_cmd_;
