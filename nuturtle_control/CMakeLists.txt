@@ -57,9 +57,9 @@ if(BUILD_TESTING)
     test/turtle_control_test.cpp
   )
 
-#   add_executable(turtle_odom_test
-#     test/turtle_odom_test.cpp
-#   )
+  add_executable(turtle_odom_test
+    test/turtle_odom_test.cpp
+  )
   # The link libraries call links this node with catch_ros2::catch_ros2_with_node_main
   # to get the default integration test node main function
   target_link_libraries(turtle_control_test
@@ -69,15 +69,15 @@ if(BUILD_TESTING)
     rclcpp geometry_msgs nuturtlebot_msgs sensor_msgs
   )
 
-#   target_link_libraries(turtle_odom_test
-#     catch_ros2::catch_ros2_with_node_main
-#   )
-#   ament_target_dependencies(turtle_odom_test
-#     rclcpp std_srvs
-#   )
+  target_link_libraries(turtle_odom_test
+    catch_ros2::catch_ros2_with_node_main
+  )
+  ament_target_dependencies(turtle_odom_test
+    rclcpp nuturtle_control_interfaces tf2_ros tf2 geometry_msgs
+  )
   install(TARGETS
     turtle_control_test
-    # turtle_odom_test
+    turtle_odom_test
     DESTINATION lib/${PROJECT_NAME}
   )
   #################
@@ -86,7 +86,7 @@ if(BUILD_TESTING)
   # This is the launch file that will be used to run the integration test
   install(FILES
     test/turtle_control_test.launch.py
-    # test/turtle_odom_test.launch.py
+    test/turtle_odom_test.launch.py
     DESTINATION share/${PROJECT_NAME}
   )
 
@@ -98,6 +98,9 @@ if(BUILD_TESTING)
   catch_ros2_add_integration_test(turtle_control_test
     LAUNCH_FILE turtle_control_test.launch.py  # example in Python
   )
+  catch_ros2_add_integration_test(turtle_odom_test
+  LAUNCH_FILE turtle_odom_test.launch.py  # example in Python
+)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
