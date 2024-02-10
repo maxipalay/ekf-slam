@@ -37,7 +37,7 @@ TEST_CASE("turtle_odom_test_service", "[integration]") {
   }
   bool service_found = client->wait_for_service(0s);
   REQUIRE(service_found);
-  
+
   // send request
   auto result = client->async_send_request(request);
 
@@ -56,11 +56,11 @@ TEST_CASE("turtle_odom_test_service", "[integration]") {
 TEST_CASE("turtle_odom_test_transform", "[integration]") {
   // create an auxiliary node
   auto node = rclcpp::Node::make_shared("turtle_odom_test_aux_node");
-  
+
   // declare params so we can get the from the launchfile
   node->declare_parameter<std::string>("odom_id");
   node->declare_parameter<std::string>("body_id");
-  
+
   // declare tf_buffer & listener
   auto tf_buffer_ =
     std::make_unique<tf2_ros::Buffer>(node->get_clock());
@@ -69,7 +69,7 @@ TEST_CASE("turtle_odom_test_transform", "[integration]") {
 
   // the transform that will be filled by the listener
   geometry_msgs::msg::TransformStamped t;
-  
+
   // set a timeout. If we dont see the expected results within this time,
   // the test will fail
   const auto TEST_DURATION = 5;

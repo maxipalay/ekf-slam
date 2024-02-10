@@ -44,7 +44,7 @@ TODO: Task D.3 (Documentation)
 * Task E.1 (Turtle interface)
 * Task E.2 (Odometry Node)
 * Task E.3 (Circle)
-TODO: Task E.4 (ROS API Testing)
+* Task E.4 (ROS API Testing)
 * Task E.5 (Launchfile)
 
 ## Task Group F (The Real Robot)

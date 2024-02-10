@@ -51,6 +51,7 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(catch_ros2 REQUIRED)
+  find_package(Python3 COMPONENTS Interpreter)
 
   # This is the node in which integration tests occur
   add_executable(turtle_control_test
@@ -87,6 +88,7 @@ if(BUILD_TESTING)
   install(FILES
     test/turtle_control_test.launch.py
     test/turtle_odom_test.launch.py
+    test/turtle_circle_test_launch.py
     DESTINATION share/${PROJECT_NAME}
   )
 
@@ -109,6 +111,9 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  add_test(NAME turtle_circle_test COMMAND ${Python3_EXECUTABLE} -m pytest
+    ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/turtle_circle_test_launch.py)
 endif()
 
 ament_package()
