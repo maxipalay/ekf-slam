@@ -1,5 +1,4 @@
 #include "turtlelib/diff_drive.hpp"
-#include "turtlelib/geometry2d.hpp"
 
 namespace turtlelib {
 
@@ -13,12 +12,13 @@ namespace turtlelib {
         auto angle_diff_left = rad_left - phi_left;
         auto angle_diff_right = rad_right - phi_right;
 
-        // body twist: Lynch, Park - Modern Robotics 13.4
+        // body twist - Odometry section - Kinematics.pdf
         auto bodyTwist = Twist2D{wheel_radius/wheel_track*(-angle_diff_left+angle_diff_right), 
                                  wheel_radius*(angle_diff_left+angle_diff_right), 0.0};
-        // integrate body twist to get Tbb'
+        // integrate body twist
         auto tf = integrate_twist(bodyTwist);
         // update config Twb*Tbb' = Twb'
+        // Equation [4] - Kinematics.pdf
         config *= tf;
         // track wheel angles
         phi_left = rad_left;
@@ -31,6 +31,7 @@ namespace turtlelib {
         if (!almost_equal(twist.y, 0.0)){
             throw std::logic_error("wheels would slip for input twist!");
         }
+        // Equation [1] Kinematics.pdf
         auto vel_left = -wheel_track/2.0/wheel_radius*twist.omega+1.0/wheel_radius*twist.x;
         auto vel_right = wheel_track/2.0/wheel_radius*twist.omega+1.0/wheel_radius*twist.x;
         return {vel_left,vel_right};

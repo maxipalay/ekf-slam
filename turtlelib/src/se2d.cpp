@@ -126,11 +126,13 @@ namespace turtlelib {
 
     Transform2D integrate_twist(Twist2D twist){
         if (twist.omega == 0.0){    // if twist is pure translation
+            // Equation [2] - Kinematics.pdf
             return Transform2D{Vector2D{twist.x, twist.y}};
         } else {    // if twist includes rotation
             auto Tsb = Transform2D{Vector2D{twist.y/twist.omega, -twist.x/twist.omega}};
             auto Tbs = Tsb.inv();
             auto Tssprime = Transform2D{twist.omega};
+            // Equation [3] - Kinematics.pdf
             return Tbs * Tssprime * Tsb;
         }
     }
