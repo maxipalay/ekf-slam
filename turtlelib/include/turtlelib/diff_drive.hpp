@@ -25,12 +25,6 @@ namespace turtlelib {
             double phi_left{};
             double phi_right{};
             Transform2D config{};
-            
-            struct Pseudoinv {double p11, p12, p13, p21, p22, p23;};
-
-            Pseudoinv left_pinv {};
-
-            void InitializePseudoInv();
 
         public:
 
