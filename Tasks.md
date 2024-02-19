@@ -34,6 +34,9 @@
 * Task C.6 (nusim launch)
 * Task C.7 (README.md)
 * Task C.7 (Turtle Drive)
+* Task C.9 (Robot Position)
+* Task C.10 (Basic Sensor)
+* Task C.11 (Collision Detection)
 
 ## Task D (Kinematics) (TODO)
 * Task D.1 (DiffDrive class)

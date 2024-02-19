@@ -41,7 +41,9 @@ namespace turtlelib {
         return config;
     }
 
-
+    void DiffDrive::setConfig(Transform2D t){
+        config = t;
+    }
 
 
 }

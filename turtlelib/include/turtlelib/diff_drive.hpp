@@ -48,6 +48,10 @@ namespace turtlelib {
             /// \return the current Transform2D
             Transform2D getConfig();
 
+            /// @brief set the current configuration
+            /// @param t - a Transform2D
+            void setConfig(Transform2D t);
+
     };
 
 }

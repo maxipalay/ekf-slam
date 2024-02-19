@@ -20,6 +20,7 @@
 ///     basic_sensor_variance (double): variance for simulated sensor data
 ///     sensor_rate (double): frequency at which simulated sensor data is generated
 ///     max_range (double): maximum simulated sensor range
+///     collision_radius (double): the collision radius for the robot
 /// PUBLISHES:
 ///     ~/walls (visualization_msgs::msg::MarkerArray): marker array containing the markers of the environment walls
 ///     ~/obstacles (visualization_msgs::msg::MarkerArray): marker array containing the obstacles
@@ -75,6 +76,7 @@ public:
     declare_parameter("track_width", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("motor_cmd_per_rad_sec", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("encoder_ticks_per_rad", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    declare_parameter("collision_radius", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("input_noise", 0.2);
     declare_parameter("slip_fraction", 0.1);
     declare_parameter("basic_sensor_variance", 0.01);
@@ -89,6 +91,7 @@ public:
     wheel_track = get_parameter("track_width").as_double();
     sensor_variance = get_parameter("basic_sensor_variance").as_double();
     sensor_max_range = get_parameter("max_range").as_double();
+    collision_radius = get_parameter("collision_radius").as_double();
 
     // instance diffDrive class
     ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
@@ -202,6 +205,7 @@ private:
 
     // get updated transform
     auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
+
     // update the transform to be broadcast
     turtle_pose_.header.stamp = get_clock()->now();
     turtle_pose_.transform.translation.x = transform.translation().x;
@@ -210,6 +214,31 @@ private:
     turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
     turtle_pose_.transform.rotation.z = std::sin(transform.rotation() / 2.0);
     turtle_pose_.transform.rotation.w = std::cos(transform.rotation() / 2.0);
+
+    // check for collisions
+    for (size_t i = 0; i < obstacles_arr.markers.size(); i++) {
+      auto marker = obstacles_arr.markers.at(i);
+
+      auto distance = std::sqrt(
+        std::pow(transform.translation().x - marker.pose.position.x, 2) +
+        std::pow(transform.translation().y - marker.pose.position.y, 2));
+
+      if (distance < collision_radius + marker.scale.x / 2.0) {
+        auto angle = std::atan2(
+          marker.pose.position.y - transform.translation().y,
+          marker.pose.position.x - transform.translation().x);
+        // re-set the transform position
+        turtle_pose_.transform.translation.x -=
+          (collision_radius + marker.scale.x / 2.0 - distance) * std::cos(angle);
+        turtle_pose_.transform.translation.y -=
+          (collision_radius + marker.scale.x / 2.0 - distance) * std::sin(angle);
+        // re-set diffdrive class
+        ddrive.setConfig({{turtle_pose_.transform.translation.x,
+            turtle_pose_.transform.translation.y}, transform.rotation()});
+        break;
+      }
+    }
+
     // broadcast transform
     tf_broadcaster_->sendTransform(turtle_pose_);
     // update sensor data publishing
@@ -479,6 +508,7 @@ private:
   double wheel_track{};
   double sensor_variance{};
   double sensor_max_range{};
+  double collision_radius{};
 
   std::random_device rd{};
   std::mt19937 gen;
