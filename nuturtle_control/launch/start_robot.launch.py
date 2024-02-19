@@ -167,4 +167,13 @@ def generate_launch_description():
                 ),
             ],
         ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [FindPackageShare("hls_lfcd_lds_driver"), '/launch',
+                 '/hlds_laser.launch.py']
+            ),
+            launch_arguments=[["port", "/dev/ttyUSB0"]],
+            condition=IfCondition(PythonExpression(
+                ['\'', LaunchConfiguration('robot'), '\'', '== \'localhost\''])),
+        ),
     ])

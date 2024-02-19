@@ -51,3 +51,6 @@
 * Task F.1 (Turtlebot Setup)
 * Task F.2 (Cross-compilation)
 * Task F.5 (Physical Testing)
+* Task F.6 (Laser scanner)
+
+
