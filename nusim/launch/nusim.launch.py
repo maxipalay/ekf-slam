@@ -27,11 +27,22 @@ def generate_launch_description():
             'rviz_config',
             value='nusim.rviz'
             ),
+        SetLaunchConfiguration(
+            'robot_params_pkg',
+            value='nuturtle_description'
+            ),
+        SetLaunchConfiguration(
+            'robot_params_path',
+            value='config/diff_params.yaml'
+            ),
         Node(
             package='nusim',
             executable='nusim',
             parameters=[ParameterFile(PathJoinSubstitution(
-                    [FindPackageShare("nusim"), "config/", LaunchConfiguration('config')]))]
+                    [FindPackageShare("nusim"), "config/", LaunchConfiguration('config')])),
+                    ParameterFile(PathJoinSubstitution(
+                            [FindPackageShare(LaunchConfiguration('robot_params_pkg')),
+                             LaunchConfiguration('robot_params_path')]))]
             ),
         Node(
             package="rviz2",

@@ -15,6 +15,8 @@
 ///     track_width (double): distance between the wheels
 ///     motor_cmd_per_rad_sec (double): motor command units per rad/s of speed for wheels
 ///     encoder_ticks_per_rad (double): number of encoder ticks per radian
+///     input_noise (double): variance for noise injected into wheel commands
+///     slip_fraction (double): limits for the uniform distribution for wheel position update noise
 /// PUBLISHES:
 ///     ~/walls (visualization_msgs::msg::MarkerArray): marker array containing the markers of the environment walls
 ///     ~/obstacles (visualization_msgs::msg::MarkerArray): marker array containing the obstacles
@@ -30,6 +32,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <random>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/qos.hpp"
@@ -68,11 +71,15 @@ public:
     declare_parameter("track_width", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("motor_cmd_per_rad_sec", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("encoder_ticks_per_rad", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    declare_parameter("input_noise", 0.2);
+    declare_parameter("slip_fraction", 0.1);
 
     motor_cmd_per_rad_sec = get_parameter("motor_cmd_per_rad_sec").as_double();
-    const auto wheel_radius = get_parameter("wheel_radius").as_double();
-    const auto wheel_track = get_parameter("track_width").as_double();
     encoder_ticks_per_rad = get_parameter("encoder_ticks_per_rad").as_double();
+    input_noise = get_parameter("input_noise").as_double();
+    slip_fraction = get_parameter("slip_fraction").as_double();
+    wheel_radius = get_parameter("wheel_radius").as_double();
+    wheel_track = get_parameter("track_width").as_double();
 
     // instance diffDrive class
     ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
@@ -144,6 +151,11 @@ public:
       "red/sensor_data",
       10);
 
+    gen = std::mt19937{rd()};
+
+    uniform_dist = std::uniform_real_distribution{-slip_fraction, slip_fraction};
+    normal_dist = std::normal_distribution{0.0, input_noise};
+
   }
 
 private:
@@ -159,11 +171,12 @@ private:
     // output timestep to screen
     // RCLCPP_INFO_STREAM(get_logger(), timestep_);
 
-    // update wheel positions and normalize
-    wheel_pos_l += wheel_vel_l * timestep_seconds;
-    //wheel_pos_l = turtlelib::normalize_angle(wheel_pos_l);
-    wheel_pos_r += wheel_vel_r * timestep_seconds;
-    //wheel_pos_r = turtlelib::normalize_angle(wheel_pos_r);
+    // update wheel positions, adding slip noise
+    const double wheel_vel_l_noisy = wheel_vel_l*(1.0 + uniform_dist(gen));
+    const double wheel_vel_r_noisy = wheel_vel_r*(1.0+ uniform_dist(gen));
+    wheel_pos_l += wheel_vel_l_noisy * timestep_seconds;
+    wheel_pos_r += wheel_vel_r_noisy * timestep_seconds;
+    
     // get updated transform
     auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
     // update the transform to be broadcast
@@ -184,10 +197,25 @@ private:
     sensor_publisher_->publish(sensor_msg);
   }
 
+  /// @brief callback for WheelCommand message subscription
+  /// @param msg - nuturtlebot_msgs::msg::WheelCommands
   void wheel_cmd_cb(const nuturtlebot_msgs::msg::WheelCommands & msg)
   {
-    wheel_vel_l = static_cast<double>(msg.left_velocity) / motor_cmd_per_rad_sec;
-    wheel_vel_r = static_cast<double>(msg.right_velocity) / motor_cmd_per_rad_sec;
+    // cast message data to double
+    auto wheel_vel_l_rads = static_cast<double>(msg.left_velocity);
+    auto wheel_vel_r_rads = static_cast<double>(msg.right_velocity);
+
+    // if commanded velocity is not zero, add noise
+    if (wheel_vel_l_rads != 0.0){
+        wheel_vel_l_rads += normal_dist(gen);
+    }
+    if (wheel_vel_r_rads != 0.0){
+        wheel_vel_r_rads += normal_dist(gen);
+    }
+
+    // update node instance variables
+    wheel_vel_l = wheel_vel_l_rads / motor_cmd_per_rad_sec;
+    wheel_vel_r = wheel_vel_r_rads / motor_cmd_per_rad_sec;
   }
 
   // callback for the reset service
@@ -380,6 +408,15 @@ private:
   double wheel_pos_r{};
   double wheel_pos_l{};
   int encoder_ticks_per_rad{};
+  double input_noise{};
+  double slip_fraction{};
+  double wheel_radius{};
+  double wheel_track{};
+
+  std::random_device rd{};
+  std::mt19937 gen;
+  std::normal_distribution<> normal_dist;
+  std::uniform_real_distribution<> uniform_dist;
 
 };
 
