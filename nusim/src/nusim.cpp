@@ -17,6 +17,9 @@
 ///     encoder_ticks_per_rad (double): number of encoder ticks per radian
 ///     input_noise (double): variance for noise injected into wheel commands
 ///     slip_fraction (double): limits for the uniform distribution for wheel position update noise
+///     basic_sensor_variance (double): variance for simulated sensor data
+///     sensor_rate (double): frequency at which simulated sensor data is generated
+///     max_range (double): maximum simulated sensor range
 /// PUBLISHES:
 ///     ~/walls (visualization_msgs::msg::MarkerArray): marker array containing the markers of the environment walls
 ///     ~/obstacles (visualization_msgs::msg::MarkerArray): marker array containing the obstacles
@@ -47,6 +50,7 @@
 #include "nuturtlebot_msgs/msg/wheel_commands.hpp"
 #include "nuturtlebot_msgs/msg/sensor_data.hpp"
 #include "turtlelib/diff_drive.hpp"
+#include "turtlelib/se2d.hpp"
 
 using namespace std::chrono_literals;
 
@@ -73,6 +77,9 @@ public:
     declare_parameter("encoder_ticks_per_rad", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("input_noise", 0.2);
     declare_parameter("slip_fraction", 0.1);
+    declare_parameter("basic_sensor_variance", 0.01);
+    declare_parameter("sensor_rate", 5.0);
+    declare_parameter("max_range", 5.0);
 
     motor_cmd_per_rad_sec = get_parameter("motor_cmd_per_rad_sec").as_double();
     encoder_ticks_per_rad = get_parameter("encoder_ticks_per_rad").as_double();
@@ -80,6 +87,8 @@ public:
     slip_fraction = get_parameter("slip_fraction").as_double();
     wheel_radius = get_parameter("wheel_radius").as_double();
     wheel_track = get_parameter("track_width").as_double();
+    sensor_variance = get_parameter("basic_sensor_variance").as_double();
+    sensor_max_range = get_parameter("max_range").as_double();
 
     // instance diffDrive class
     ddrive = turtlelib::DiffDrive{wheel_track, wheel_radius};
@@ -119,8 +128,16 @@ public:
     timestep_publisher_ = create_publisher<std_msgs::msg::UInt64>("~/timestep", 10);
 
     // create main loop timer
-    timer_ = create_wall_timer(
+    timer_simulation_ = create_wall_timer(
       timerStep, std::bind(&NuSim::timer_callback, this));
+
+    // create sensor data timer
+    // calculate timer step
+    std::chrono::milliseconds timerStepSensor =
+      (std::chrono::milliseconds)(int)(1000.0 / get_parameter("sensor_rate").as_double());
+
+    timer_sensor_data_ = create_wall_timer(
+      timerStepSensor, std::bind(&NuSim::sensor_timer_callback, this));
 
     // create QoS for markers publishers
     auto markers_qos_ = rclcpp::SystemDefaultsQoS{};
@@ -143,6 +160,11 @@ public:
     sub_wheel_cmd_ = create_subscription<nuturtlebot_msgs::msg::WheelCommands>(
       "red/wheel_cmd", 10, std::bind(&NuSim::wheel_cmd_cb, this, std::placeholders::_1));
 
+    // create sensed obstacles publisher
+    sensed_obstacles_publisher_ = create_publisher<visualization_msgs::msg::MarkerArray>(
+      "~/fake_sensor",
+      markers_qos_);
+
     // publish obstacles
     publish_obstacles();
 
@@ -153,8 +175,9 @@ public:
 
     gen = std::mt19937{rd()};
 
-    uniform_dist = std::uniform_real_distribution{-slip_fraction, slip_fraction};
-    normal_dist = std::normal_distribution{0.0, input_noise};
+    slip_uniform_dist = std::uniform_real_distribution{-slip_fraction, slip_fraction};
+    velocity_normal_dist = std::normal_distribution{0.0, input_noise};
+    sensor_normal_dist = std::normal_distribution{0.0, sensor_variance};
 
   }
 
@@ -172,8 +195,8 @@ private:
     // RCLCPP_INFO_STREAM(get_logger(), timestep_);
 
     // update wheel positions, adding slip noise
-    const double wheel_vel_l_noisy = wheel_vel_l*(1.0 + uniform_dist(gen));
-    const double wheel_vel_r_noisy = wheel_vel_r*(1.0+ uniform_dist(gen));
+    const double wheel_vel_l_noisy = wheel_vel_l*(1.0 + slip_uniform_dist(gen));
+    const double wheel_vel_r_noisy = wheel_vel_r*(1.0+ slip_uniform_dist(gen));
     wheel_pos_l += wheel_vel_l_noisy * timestep_seconds;
     wheel_pos_r += wheel_vel_r_noisy * timestep_seconds;
     
@@ -197,6 +220,42 @@ private:
     sensor_publisher_->publish(sensor_msg);
   }
 
+  void sensor_timer_callback(){
+    // sensor_normal_dist(gen);
+    visualization_msgs::msg::MarkerArray sensed_obstacles_arr;
+
+    for (size_t i = 0; i < obstacles_arr.markers.size(); i++) {
+        auto marker = obstacles_arr.markers.at(i);
+
+        // calculate the relative location from robot to marker
+        auto robot_config = ddrive.getConfig(); // Tworld->robot
+        auto obstacle_config = turtlelib::Transform2D{{marker.pose.position.x,
+                                                       marker.pose.position.y},0.0};
+                                                       // Tworld->marker
+        auto relative_config = robot_config.inv()*obstacle_config;
+        
+        auto distance = std::sqrt(std::pow(relative_config.translation().x, 2)+
+                                  std::pow(relative_config.translation().y, 2));
+        
+        int action;
+        if (distance <= sensor_max_range){
+            action = visualization_msgs::msg::Marker::ADD;
+        } else {
+            action = visualization_msgs::msg::Marker::DELETE;
+        }
+        auto sensed_marker = create_obstacle(marker.scale.x, marker.scale.y, marker.scale.z,
+                            relative_config.translation().x+sensor_normal_dist(gen),
+                            relative_config.translation().y+sensor_normal_dist(gen), 
+                            marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id);
+
+        sensed_obstacles_arr.markers.insert(
+        sensed_obstacles_arr.markers.end(),
+        sensed_marker);
+    }
+    sensed_obstacles_publisher_->publish(sensed_obstacles_arr);
+    
+  }
+
   /// @brief callback for WheelCommand message subscription
   /// @param msg - nuturtlebot_msgs::msg::WheelCommands
   void wheel_cmd_cb(const nuturtlebot_msgs::msg::WheelCommands & msg)
@@ -207,10 +266,10 @@ private:
 
     // if commanded velocity is not zero, add noise
     if (wheel_vel_l_rads != 0.0){
-        wheel_vel_l_rads += normal_dist(gen);
+        wheel_vel_l_rads += velocity_normal_dist(gen);
     }
     if (wheel_vel_r_rads != 0.0){
-        wheel_vel_r_rads += normal_dist(gen);
+        wheel_vel_r_rads += velocity_normal_dist(gen);
     }
 
     // update node instance variables
@@ -291,15 +350,17 @@ private:
   // helper function to create an obstacle marker
   visualization_msgs::msg::Marker create_obstacle(
     double scaleX, double scaleY, double scaleZ,
-    double posX, double posY, double posZ, double id)
+    double posX, double posY, double posZ, double id, 
+    int action = visualization_msgs::msg::Marker::ADD,
+    std::string frame_id = "nusim/world")
   {
     visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "nusim/world";
+    marker.header.frame_id = frame_id;
     marker.header.stamp = get_clock()->now();
     marker.ns = "";
     marker.id = id;
     marker.type = visualization_msgs::msg::Marker::CYLINDER;
-    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.action = action;
     marker.pose.position.x = posX;
     marker.pose.position.y = posY;
     marker.pose.position.z = posZ;
@@ -336,16 +397,14 @@ private:
     auto obstacles_y = get_parameter("obstacles/y").as_double_array();
     auto obstacles_r = get_parameter("obstacles/r").as_double_array();
 
-    visualization_msgs::msg::MarkerArray marker_array;
-
     for (size_t i = 0; i < obstacles_x.size(); i++) {
-      marker_array.markers.insert(
-        marker_array.markers.end(),
+      obstacles_arr.markers.insert(
+        obstacles_arr.markers.end(),
         create_obstacle(
           obstacles_r[i] * 2.0, obstacles_r[i] * 2.0, cylinder_height, obstacles_x[i],
           obstacles_y[i], cylinder_z_pos, int(i)));
     }
-    obstacles_publisher_->publish(marker_array);
+    obstacles_publisher_->publish(obstacles_arr);
   }
 
   // helper function to publish the arena walls
@@ -390,15 +449,18 @@ private:
 
   double timestep_seconds;
   turtlelib::DiffDrive ddrive{0.0, 0.0};
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr timer_simulation_;
+  rclcpp::TimerBase::SharedPtr timer_sensor_data_;
   rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr timestep_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr walls_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr obstacles_publisher_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr sensed_obstacles_publisher_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_service_;
   rclcpp::Service<nusim_interfaces::srv::Teleport>::SharedPtr teleport_service_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   geometry_msgs::msg::TransformStamped turtle_pose_;
   u_int64_t timestep_;
+  visualization_msgs::msg::MarkerArray obstacles_arr;
 
   rclcpp::Subscription<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr sub_wheel_cmd_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::SensorData>::SharedPtr sensor_publisher_;
@@ -412,11 +474,14 @@ private:
   double slip_fraction{};
   double wheel_radius{};
   double wheel_track{};
+  double sensor_variance{};
+  double sensor_max_range{};
 
   std::random_device rd{};
   std::mt19937 gen;
-  std::normal_distribution<> normal_dist;
-  std::uniform_real_distribution<> uniform_dist;
+  std::normal_distribution<> velocity_normal_dist;
+  std::normal_distribution<> sensor_normal_dist;
+  std::uniform_real_distribution<> slip_uniform_dist;
 
 };
 
