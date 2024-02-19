@@ -195,11 +195,11 @@ private:
     // RCLCPP_INFO_STREAM(get_logger(), timestep_);
 
     // update wheel positions, adding slip noise
-    const double wheel_vel_l_noisy = wheel_vel_l*(1.0 + slip_uniform_dist(gen));
-    const double wheel_vel_r_noisy = wheel_vel_r*(1.0+ slip_uniform_dist(gen));
+    const double wheel_vel_l_noisy = wheel_vel_l * (1.0 + slip_uniform_dist(gen));
+    const double wheel_vel_r_noisy = wheel_vel_r * (1.0 + slip_uniform_dist(gen));
     wheel_pos_l += wheel_vel_l_noisy * timestep_seconds;
     wheel_pos_r += wheel_vel_r_noisy * timestep_seconds;
-    
+
     // get updated transform
     auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
     // update the transform to be broadcast
@@ -220,40 +220,43 @@ private:
     sensor_publisher_->publish(sensor_msg);
   }
 
-  void sensor_timer_callback(){
+  void sensor_timer_callback()
+  {
     // sensor_normal_dist(gen);
     visualization_msgs::msg::MarkerArray sensed_obstacles_arr;
 
     for (size_t i = 0; i < obstacles_arr.markers.size(); i++) {
-        auto marker = obstacles_arr.markers.at(i);
+      auto marker = obstacles_arr.markers.at(i);
 
-        // calculate the relative location from robot to marker
-        auto robot_config = ddrive.getConfig(); // Tworld->robot
-        auto obstacle_config = turtlelib::Transform2D{{marker.pose.position.x,
-                                                       marker.pose.position.y},0.0};
-                                                       // Tworld->marker
-        auto relative_config = robot_config.inv()*obstacle_config;
-        
-        auto distance = std::sqrt(std::pow(relative_config.translation().x, 2)+
-                                  std::pow(relative_config.translation().y, 2));
-        
-        int action;
-        if (distance <= sensor_max_range){
-            action = visualization_msgs::msg::Marker::ADD;
-        } else {
-            action = visualization_msgs::msg::Marker::DELETE;
-        }
-        auto sensed_marker = create_obstacle(marker.scale.x, marker.scale.y, marker.scale.z,
-                            relative_config.translation().x+sensor_normal_dist(gen),
-                            relative_config.translation().y+sensor_normal_dist(gen), 
-                            marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id);
+      // calculate the relative location from robot to marker
+      auto robot_config = ddrive.getConfig();   // Tworld->robot
+      auto obstacle_config = turtlelib::Transform2D{{marker.pose.position.x,
+        marker.pose.position.y}, 0.0};
+      // Tworld->marker
+      auto relative_config = robot_config.inv() * obstacle_config;
 
-        sensed_obstacles_arr.markers.insert(
+      auto distance = std::sqrt(
+        std::pow(relative_config.translation().x, 2) +
+        std::pow(relative_config.translation().y, 2));
+
+      int action;
+      if (distance <= sensor_max_range) {
+        action = visualization_msgs::msg::Marker::ADD;
+      } else {
+        action = visualization_msgs::msg::Marker::DELETE;
+      }
+      auto sensed_marker = create_obstacle(
+        marker.scale.x, marker.scale.y, marker.scale.z,
+        relative_config.translation().x + sensor_normal_dist(gen),
+        relative_config.translation().y + sensor_normal_dist(gen),
+        marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id);
+
+      sensed_obstacles_arr.markers.insert(
         sensed_obstacles_arr.markers.end(),
         sensed_marker);
     }
     sensed_obstacles_publisher_->publish(sensed_obstacles_arr);
-    
+
   }
 
   /// @brief callback for WheelCommand message subscription
@@ -265,11 +268,11 @@ private:
     auto wheel_vel_r_rads = static_cast<double>(msg.right_velocity);
 
     // if commanded velocity is not zero, add noise
-    if (wheel_vel_l_rads != 0.0){
-        wheel_vel_l_rads += velocity_normal_dist(gen);
+    if (wheel_vel_l_rads != 0.0) {
+      wheel_vel_l_rads += velocity_normal_dist(gen);
     }
-    if (wheel_vel_r_rads != 0.0){
-        wheel_vel_r_rads += velocity_normal_dist(gen);
+    if (wheel_vel_r_rads != 0.0) {
+      wheel_vel_r_rads += velocity_normal_dist(gen);
     }
 
     // update node instance variables
@@ -350,7 +353,7 @@ private:
   // helper function to create an obstacle marker
   visualization_msgs::msg::Marker create_obstacle(
     double scaleX, double scaleY, double scaleZ,
-    double posX, double posY, double posZ, double id, 
+    double posX, double posY, double posZ, double id,
     int action = visualization_msgs::msg::Marker::ADD,
     std::string frame_id = "nusim/world")
   {
