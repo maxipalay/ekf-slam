@@ -37,6 +37,7 @@
 #include <memory>
 #include <string>
 #include <random>
+#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/qos.hpp"
@@ -52,6 +53,8 @@
 #include "nuturtlebot_msgs/msg/sensor_data.hpp"
 #include "turtlelib/diff_drive.hpp"
 #include "turtlelib/se2d.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 using namespace std::chrono_literals;
 
@@ -168,6 +171,10 @@ public:
       "~/fake_sensor",
       markers_qos_);
 
+    // create laser publisher
+    laser_publisher_ = create_publisher<sensor_msgs::msg::LaserScan>(
+      "~/scan", 10);
+
     // publish obstacles
     publish_obstacles();
 
@@ -204,39 +211,41 @@ private:
     wheel_pos_r += wheel_vel_r_noisy * timestep_seconds;
 
     // get updated transform
-    auto transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
-
-    // update the transform to be broadcast
-    turtle_pose_.header.stamp = get_clock()->now();
-    turtle_pose_.transform.translation.x = transform.translation().x;
-    turtle_pose_.transform.translation.y = transform.translation().y;
-    turtle_pose_.transform.rotation.x = 0.0; // will always be zero in planar rotations
-    turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
-    turtle_pose_.transform.rotation.z = std::sin(transform.rotation() / 2.0);
-    turtle_pose_.transform.rotation.w = std::cos(transform.rotation() / 2.0);
+    turtle_transform = ddrive.FKin(wheel_pos_l, wheel_pos_r);
 
     // check for collisions
     for (size_t i = 0; i < obstacles_arr.markers.size(); i++) {
       auto marker = obstacles_arr.markers.at(i);
 
       auto distance = std::sqrt(
-        std::pow(transform.translation().x - marker.pose.position.x, 2) +
-        std::pow(transform.translation().y - marker.pose.position.y, 2));
+        std::pow(turtle_transform.translation().x - marker.pose.position.x, 2) +
+        std::pow(turtle_transform.translation().y - marker.pose.position.y, 2));
 
       if (distance < collision_radius + marker.scale.x / 2.0) {
         auto angle = std::atan2(
-          marker.pose.position.y - transform.translation().y,
-          marker.pose.position.x - transform.translation().x);
+          marker.pose.position.y - turtle_transform.translation().y,
+          marker.pose.position.x - turtle_transform.translation().x);
         // re-set the transform position
-        turtle_pose_.transform.translation.x -=
-          (collision_radius + marker.scale.x / 2.0 - distance) * std::cos(angle);
-        turtle_pose_.transform.translation.y -=
-          (collision_radius + marker.scale.x / 2.0 - distance) * std::sin(angle);
+        turtle_transform = turtlelib::Transform2D{{turtle_transform.translation().x -
+          (collision_radius + marker.scale.x / 2.0 - distance) * std::cos(angle),
+        turtle_transform.translation().y -
+          (collision_radius + marker.scale.x / 2.0 - distance) * std::sin(angle)},
+          turtle_transform.rotation()};
         // re-set diffdrive class
-        ddrive.setConfig({{turtle_pose_.transform.translation.x,
-            turtle_pose_.transform.translation.y}, transform.rotation()});
+        ddrive.setConfig({{turtle_transform.translation().x,
+            turtle_transform.translation().y}, turtle_transform.rotation()});
         break;
       }
+
+    // update the transform to be broadcast
+    turtle_pose_.header.stamp = get_clock()->now();
+    turtle_pose_.transform.translation.x = turtle_transform.translation().x;
+    turtle_pose_.transform.translation.y = turtle_transform.translation().y;
+    turtle_pose_.transform.rotation.x = 0.0; // will always be zero in planar rotations
+    turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
+    turtle_pose_.transform.rotation.z = std::sin(turtle_transform.rotation() / 2.0);
+    turtle_pose_.transform.rotation.w = std::cos(turtle_transform.rotation() / 2.0);
+
     }
 
     // broadcast transform
@@ -251,6 +260,7 @@ private:
 
   void sensor_timer_callback()
   {
+    publish_lidar_data();
     // sensor_normal_dist(gen);
     visualization_msgs::msg::MarkerArray sensed_obstacles_arr;
 
@@ -357,7 +367,8 @@ private:
   // helper function to create a wall marker
   visualization_msgs::msg::Marker create_wall(
     double scaleX, double scaleY, double scaleZ,
-    double posX, double posY, double posZ, double id)
+    double posX, double posY, double posZ, double id,
+    tf2::Quaternion orientation)
   {
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = "nusim/world";
@@ -369,6 +380,7 @@ private:
     marker.pose.position.x = posX;
     marker.pose.position.y = posY;
     marker.pose.position.z = posZ;
+    marker.pose.orientation = tf2::toMsg(orientation);
     marker.scale.x = scaleX;
     marker.scale.y = scaleY;
     marker.scale.z = scaleZ;
@@ -451,32 +463,177 @@ private:
 
     visualization_msgs::msg::MarkerArray marker_array;
     // top-down with x axis pointing up, this is the right wall
+    auto rotation = tf2::Quaternion();
+    rotation.setRPY(0.0,0.0,3.0/4.0*2.0*3.1416);
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
-        x_size + 2.0 * wall_thickness, wall_thickness, wall_height, 0,
-        -(y_size + wall_thickness) / 2.0, wall_z_pos, 0));
+        wall_thickness, x_size + 2.0 * wall_thickness, wall_height, 0,
+        -(y_size + wall_thickness) / 2.0, wall_z_pos, 0, rotation));
     // top-down with x axis pointing up, this is the left wall
+    rotation.setRPY(0.0,0.0,1.57);
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
-        x_size + 2.0 * wall_thickness, wall_thickness, wall_height, 0,
-        (y_size + wall_thickness) / 2.0, wall_z_pos, 1));
+        wall_thickness, x_size + 2.0 * wall_thickness, wall_height, 0,
+        (y_size + wall_thickness) / 2.0, wall_z_pos, 1, rotation));
     // top-down with x axis pointing up, this is the top wall
+    rotation.setRPY(0.0,0.0,0.0);
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
         wall_thickness, y_size + 2.0 * wall_thickness, wall_height,
-        (x_size + wall_thickness) / 2.0, 0, wall_z_pos, 2));
+        (x_size + wall_thickness) / 2.0, 0, wall_z_pos, 2, rotation));
     // top-down with x axis pointing up, this is the bottom wall
+    rotation.setRPY(0.0,0.0,-3.14159);
     marker_array.markers.insert(
       marker_array.markers.end(),
       create_wall(
         wall_thickness, y_size + 2.0 * wall_thickness, wall_height,
-        -(x_size + wall_thickness) / 2.0, 0, wall_z_pos, 3));
+        -(x_size + wall_thickness) / 2.0, 0, wall_z_pos, 3, rotation));
 
     // publish
     walls_publisher_->publish(marker_array);
+    walls_arr = marker_array;
+  }
+
+  void publish_lidar_data(){
+    // construct the message
+    auto msg = sensor_msgs::msg::LaserScan();
+    msg.header.stamp = get_clock()->now()-rclcpp::Duration(1, 0);
+    msg.header.frame_id = "red/base_scan";
+    msg.angle_min = 0.0;
+    msg.angle_max = 6.26573;
+    msg.angle_increment = 2.0*turtlelib::PI/360.0;
+    msg.time_increment = 0.000559;
+    msg.scan_time = 0.2013;
+    msg.range_min = 0.11;
+    msg.range_max = 10.0;
+    // we can do 360 measurements per turn
+    auto T_world_turtle = turtle_transform;
+    // this would yield angle_increment of 2*pi/360 or 1.0deg
+    for (int i = 0; i < 360; i++){  // for each laser beam
+        auto T_turtle_laser = turtlelib::Transform2D{{-0.032, 0.0}};
+        T_turtle_laser *= turtlelib::Transform2D{static_cast<double>(i)*2.0*turtlelib::PI/360.0};
+        auto T_world_laser = T_world_turtle * T_turtle_laser;
+
+        // get the two points on this line
+        auto T_world_p1 = T_world_laser;
+        auto T_world_p2 = T_world_laser * turtlelib::Transform2D{{1.0,0.0}};
+
+        // check if we hit any obstacles
+        auto collision = false;
+        auto closest_distance = 3.0;
+        //auto closest_transform = turtlelib::Transform2D{};
+        for (size_t j = 0; j < obstacles_arr.markers.size(); j++){
+            auto marker = obstacles_arr.markers.at(j);
+            // lets get the transform lidar->marker
+            auto T_world_marker = turtlelib::Transform2D{{marker.pose.position.x, marker.pose.position.y}, 0};// we're making this aligned with the vector going from p1 to p2
+            
+            auto T_laser_marker = T_world_laser.inv()*T_world_marker;
+            // now check if the obstacle is in front of the laser scanner angle
+            if (T_laser_marker.translation().x >= 0){
+
+                auto u = turtlelib::Point2D{marker.pose.position.x, marker.pose.position.y} - 
+                         turtlelib::Point2D{T_world_laser.translation().x, T_world_laser.translation().y};
+
+                auto R_direction = turtlelib::normalize(turtlelib::Point2D{T_world_p2.translation().x, T_world_p2.translation().y} -
+                                    turtlelib::Point2D{T_world_p1.translation().x, T_world_p1.translation().y});
+
+                auto u1 = turtlelib::dot(u, R_direction)*R_direction;
+
+                auto u2 = u - u1;
+
+                auto d = turtlelib::magnitude(u2);
+
+                auto m = std::sqrt(std::pow(marker.scale.x/2.0,2)-std::pow(d,2));
+
+                auto p1 = turtlelib::Point2D{T_world_laser.translation().x, T_world_laser.translation().y} + u1 + m*R_direction;
+                auto p2 = turtlelib::Point2D{T_world_laser.translation().x, T_world_laser.translation().y} + (-1.0*u1) + m*R_direction;
+
+
+                auto distance1 = std::sqrt(std::pow(T_world_laser.translation().x-p1.x, 2)+
+                 std::pow(T_world_laser.translation().y-p1.y, 2));
+
+                auto distance2 = std::sqrt(std::pow(T_world_laser.translation().x-p2.x, 2)+
+                 std::pow(T_world_laser.translation().y-p2.y, 2));
+
+                auto distance{0.0};
+                if (distance1 < distance2){
+                    distance = distance1;
+                } else {
+                    distance = distance2;
+                }
+                
+                if (distance < closest_distance){
+                    closest_distance = distance;
+                    //closest_transform = turtlelib::Transform2D{{p1.x, p1.y}};
+                    collision = true;
+                }
+            }
+            // once we find a collision, we will keep checking
+            // there could be a case we detect an obstacle that is further away and occluded by another
+            // close obstacle
+        }
+        // if we didnt hit obstacles, check if we hit any walls
+        if (!collision){
+            for (size_t j = 0; j < walls_arr.markers.size(); j++){
+                auto marker = walls_arr.markers.at(j);
+                // the two points that define our line are T_world_p1, T_world_p2
+                // now we calculate two points on the inner border of the wall
+                auto marker_rotation = tf2::Quaternion(marker.pose.orientation.x,
+                                                    marker.pose.orientation.y,
+                                                    marker.pose.orientation.z,
+                                                    marker.pose.orientation.w);
+                auto marker_yaw = marker_rotation.getAngle();
+                auto T_world_obstacle = turtlelib::Transform2D{{marker.pose.position.x, marker.pose.position.y}};
+                T_world_obstacle *= turtlelib::Transform2D{marker_yaw};
+                T_world_obstacle *= turtlelib::Transform2D{{-marker.scale.x, 0.0}};
+                auto T_world_obstacle_p2 = T_world_obstacle * turtlelib::Transform2D{{0.0, 0.1}};
+
+
+                // x1,y1,x2,y2,x3,y3,x4,y4 definition for clarity
+                auto x1 = T_world_p1.translation().x;
+                auto y1 = T_world_p1.translation().y;
+ 
+                auto x2 = T_world_p2.translation().x;
+                auto y2 = T_world_p2.translation().y;
+
+                auto x3 = T_world_obstacle.translation().x;
+                auto y3 = T_world_obstacle.translation().y;
+
+                auto x4 = T_world_obstacle_p2.translation().x;
+                auto y4 = T_world_obstacle_p2.translation().y;
+
+                auto denom = (x1-x2)*(y3-y4) - (y1 -y2)*(x3-x4);
+                auto num_x = (x1*y2 - y1*x2)*(x3 - x4) - (x1 -x2)*(x3*y4 - y3*x4);
+                auto num_y = (x1*y2 - y1*x2)*(y3 - y4) - (y1 -y2)*(x3*y4 - y3*x4);
+
+                if (denom != 0.0){
+                    auto px = num_x / denom;
+                    auto py = num_y / denom;
+                    auto T_world_wall = turtlelib::Transform2D{{px, py}};
+                    auto T_laser_wall = T_world_laser.inv() * T_world_wall;
+                    if (T_laser_wall.translation().x > 0){// if x coordinat e(px) is on front of the laser (x>0)
+                        auto distance = std::sqrt(std::pow(T_world_laser.translation().x-px, 2)+
+                            std::pow(T_world_laser.translation().y-py, 2));
+                        if (distance < closest_distance){
+                            closest_distance = distance;
+                        }
+                    }
+                }
+                
+            }
+        }
+        if (closest_distance > msg.range_max){
+            closest_distance = msg.range_max;
+        }
+        if (closest_distance < msg.range_min){
+            closest_distance = msg.range_min;
+        }
+        msg.ranges.insert(msg.ranges.end(), closest_distance);
+    }
+    laser_publisher_->publish(msg);
   }
 
   double timestep_seconds;
@@ -487,12 +644,15 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr walls_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr obstacles_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr sensed_obstacles_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_publisher_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_service_;
   rclcpp::Service<nusim_interfaces::srv::Teleport>::SharedPtr teleport_service_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   geometry_msgs::msg::TransformStamped turtle_pose_;
+  turtlelib::Transform2D turtle_transform;
   u_int64_t timestep_;
   visualization_msgs::msg::MarkerArray obstacles_arr;
+  visualization_msgs::msg::MarkerArray walls_arr;
 
   rclcpp::Subscription<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr sub_wheel_cmd_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::SensorData>::SharedPtr sensor_publisher_;
