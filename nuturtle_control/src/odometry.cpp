@@ -127,13 +127,13 @@ private:
 
   void jointStateCallback(const sensor_msgs::msg::JointState & msg)
   {
-    auto time_now = get_clock()->now();
+    auto time_now = rclcpp::Time(msg.header.stamp);
     // we should be using the names provided (name_wheel_left, name_Wheel_right)
     // to find out the indices of those in the vector
     auto transform = ddrive.FKin(msg.position.at(0), msg.position.at(1));
     if (!first_joints_cb) {
       auto dt = (time_now - time_last_joint_data).seconds();
-      odom_msg.header.stamp = time_now;
+      odom_msg.header.stamp = msg.header.stamp;
       odom_msg.pose.pose.position.x = transform.translation().x;
       odom_msg.pose.pose.position.y = transform.translation().y;
       odom_msg.pose.pose.orientation.x = 0.0;   // will always be zero in planar rotations
@@ -144,10 +144,10 @@ private:
         (dt);
       odom_msg.twist.twist.linear.y = (transform.translation().y - prev_transform.translation().y) /
         (dt);
-      odom_msg.twist.twist.angular.z = (transform.rotation() - prev_transform.rotation()) / (dt);
+      odom_msg.twist.twist.angular.z = (turtlelib::normalize_angle(transform.rotation()) - turtlelib::normalize_angle(prev_transform.rotation())) / (dt);
       // pub_odom_->publish(odom_msg);
 
-      odom_transform.header.stamp = time_now;
+      odom_transform.header.stamp = msg.header.stamp;
       odom_transform.transform.translation.x = odom_msg.pose.pose.position.x;
       odom_transform.transform.translation.y = odom_msg.pose.pose.position.y;
       odom_transform.transform.rotation.x = odom_msg.pose.pose.orientation.x;
@@ -158,7 +158,7 @@ private:
     } else {
       first_joints_cb = false;
     }
-    time_last_joint_data = time_now;
+    time_last_joint_data = msg.header.stamp;
     prev_transform = transform;
   }
   bool first_joints_cb = true;
