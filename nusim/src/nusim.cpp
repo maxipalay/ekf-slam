@@ -288,7 +288,7 @@ private:
         marker.scale.x, marker.scale.y, marker.scale.z,
         relative_config.translation().x + sensor_normal_dist(gen),
         relative_config.translation().y + sensor_normal_dist(gen),
-        marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id);
+        marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id, "g");
 
       sensed_obstacles_arr.markers.insert(
         sensed_obstacles_arr.markers.end(),
@@ -396,7 +396,7 @@ private:
     double scaleX, double scaleY, double scaleZ,
     double posX, double posY, double posZ, double id,
     int action = visualization_msgs::msg::Marker::ADD,
-    std::string frame_id = "nusim/world")
+    std::string frame_id = "nusim/world", std::string color = "r")
   {
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = frame_id;
@@ -411,9 +411,11 @@ private:
     marker.scale.x = scaleX;
     marker.scale.y = scaleY;
     marker.scale.z = scaleZ;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
+    if (color == "r"){
+        marker.color.r = 1.0;
+    } else if (color == "g"){
+        marker.color.g = 1.0;
+    }
     marker.color.a = 1.0;
     return marker;
   }
