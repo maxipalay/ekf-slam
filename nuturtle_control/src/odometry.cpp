@@ -33,6 +33,7 @@
 #include "turtlelib/se2d.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 #include "nuturtle_control_interfaces/srv/initial_pose.hpp"
+#include "nav_msgs/msg/path.hpp"
 
 using namespace std::chrono_literals;
 
@@ -92,6 +93,10 @@ public:
     timer_ = create_wall_timer(
       timer_step, std::bind(&Odometry::timerCallback, this));
 
+    path_publisher_ = create_publisher<nav_msgs::msg::Path>("blue/path", 10);
+    path_msg = nav_msgs::msg::Path();
+    path_msg.header.frame_id = odom_id;
+
   }
 
 private:
@@ -144,7 +149,9 @@ private:
         (dt);
       odom_msg.twist.twist.linear.y = (transform.translation().y - prev_transform.translation().y) /
         (dt);
-      odom_msg.twist.twist.angular.z = (turtlelib::normalize_angle(transform.rotation()) - turtlelib::normalize_angle(prev_transform.rotation())) / (dt);
+      odom_msg.twist.twist.angular.z =
+        (turtlelib::normalize_angle(transform.rotation()) -
+        turtlelib::normalize_angle(prev_transform.rotation())) / (dt);
       // pub_odom_->publish(odom_msg);
 
       odom_transform.header.stamp = msg.header.stamp;
@@ -155,11 +162,23 @@ private:
       odom_transform.transform.rotation.z = odom_msg.pose.pose.orientation.z;
       odom_transform.transform.rotation.w = odom_msg.pose.pose.orientation.w;
       // tf_broadcaster_->sendTransform(odom_transform);
+
+      auto pose = geometry_msgs::msg::PoseStamped();
+      pose.header.frame_id = odom_id;
+      pose.header.stamp = time_now;
+      pose.pose = odom_msg.pose.pose;
+
+      path_msg.poses.insert(path_msg.poses.end(), pose);
+      path_msg.header.stamp = time_now;
+
+      path_publisher_->publish(path_msg);
+
     } else {
       first_joints_cb = false;
     }
     time_last_joint_data = msg.header.stamp;
     prev_transform = transform;
+
   }
   bool first_joints_cb = true;
   double wheel_radius;
@@ -178,6 +197,8 @@ private:
   turtlelib::Transform2D prev_transform;
   rclcpp::Service<nuturtle_control_interfaces::srv::InitialPose>::SharedPtr pose_service_;
   rclcpp::TimerBase::SharedPtr timer_;
+  nav_msgs::msg::Path path_msg;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
 
 };
 
