@@ -8,7 +8,7 @@ namespace turtlelib {
         auto ddrive = DiffDrive(0.1, 0.05);
 
         // pure forward translation
-        auto tf = ddrive.FKin(PI/2.0, PI/2.0);
+        auto tf = ddrive.FKin(PI, PI);
 
         REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(PI*0.05, 1.0E-8));
         REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(0.0, 1.0E-8));
@@ -19,7 +19,7 @@ namespace turtlelib {
         auto ddrive = DiffDrive(0.1, 0.05);
 
         // pure backward translation
-        auto tf = ddrive.FKin(-PI/2.0, -PI/2.0);
+        auto tf = ddrive.FKin(-PI, -PI);
 
         REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(-PI*0.05, 1.0E-8));
         REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(0.0, 1.0E-8));
@@ -67,8 +67,8 @@ namespace turtlelib {
         // arc forward translation
         auto tf = ddrive.FKin((0.4*PI/4.0)/(2.0*PI*0.2)*2.0*PI, (0.2*PI/4.0)/(2.0*PI*0.2)*2.0*PI);
 
-        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(0.3, 1.0E-8));
-        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-0.3, 1.0E-8));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(0.15, 1.0E-8));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-0.15, 1.0E-8));
         REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(-PI/2.0, 1.0E-8));
     }
 
@@ -78,8 +78,8 @@ namespace turtlelib {
         // arc backward translation
         auto tf = ddrive.FKin(-(0.4*PI/4.0)/(2.0*PI*0.2)*2.0*PI, -(0.2*PI/4.0)/(2.0*PI*0.2)*2.0*PI);
 
-        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(-0.3, 1.0E-8));
-        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-0.3, 1.0E-8));
+        REQUIRE_THAT(tf.translation().x, Catch::Matchers::WithinAbs(-0.15, 1.0E-8));
+        REQUIRE_THAT(tf.translation().y, Catch::Matchers::WithinAbs(-0.15, 1.0E-8));
         REQUIRE_THAT(tf.rotation(), Catch::Matchers::WithinAbs(PI/2.0, 1.0E-8));
     }
 

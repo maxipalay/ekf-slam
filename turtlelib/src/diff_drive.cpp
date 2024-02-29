@@ -12,9 +12,9 @@ namespace turtlelib {
         auto angle_diff_left = rad_left - phi_left;
         auto angle_diff_right = rad_right - phi_right;
 
-        // body twist - Odometry section - Kinematics.pdf
+        // body twist - Odometry section - Kinematics.pdf // MR Eq. [13.34]
         auto bodyTwist = Twist2D{wheel_radius/wheel_track*(-angle_diff_left+angle_diff_right), 
-                                 wheel_radius*(angle_diff_left+angle_diff_right), 0.0};
+                                 wheel_radius/2.0*(angle_diff_left+angle_diff_right), 0.0};
         // integrate body twist
         auto tf = integrate_twist(bodyTwist);
         // update config Twb*Tbb' = Twb'
@@ -31,7 +31,7 @@ namespace turtlelib {
         if (!almost_equal(twist.y, 0.0)){
             throw std::logic_error("wheels would slip for input twist!");
         }
-        // Equation [1] Kinematics.pdf
+        // Equation [1] Kinematics.pdf 
         auto vel_left = -wheel_track/2.0/wheel_radius*twist.omega+1.0/wheel_radius*twist.x;
         auto vel_right = wheel_track/2.0/wheel_radius*twist.omega+1.0/wheel_radius*twist.x;
         return {vel_left,vel_right};
