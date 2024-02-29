@@ -55,6 +55,7 @@
 #include "turtlelib/se2d.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "nav_msgs/msg/path.hpp"
 
 using namespace std::chrono_literals;
 
@@ -189,12 +190,16 @@ public:
     velocity_normal_dist = std::normal_distribution{0.0, input_noise};
     sensor_normal_dist = std::normal_distribution{0.0, sensor_variance};
 
+    path_publisher_ = create_publisher<nav_msgs::msg::Path>("red/path", 10);
+    path_msg = nav_msgs::msg::Path();
+    path_msg.header.frame_id = "nusim/world";
   }
 
 private:
   // main loop
   void timer_callback()
   {
+    auto time_now = get_clock()->now();
     // publish timestep update, and update timestep
     auto message = std_msgs::msg::UInt64();
     message.data = timestep_;
@@ -238,14 +243,13 @@ private:
       }
 
     // update the transform to be broadcast
-    turtle_pose_.header.stamp = get_clock()->now();
+    turtle_pose_.header.stamp = time_now;
     turtle_pose_.transform.translation.x = turtle_transform.translation().x;
     turtle_pose_.transform.translation.y = turtle_transform.translation().y;
     turtle_pose_.transform.rotation.x = 0.0; // will always be zero in planar rotations
     turtle_pose_.transform.rotation.y = 0.0; // will always be zero in planar rotations
     turtle_pose_.transform.rotation.z = std::sin(turtle_transform.rotation() / 2.0);
     turtle_pose_.transform.rotation.w = std::cos(turtle_transform.rotation() / 2.0);
-
     }
 
     // broadcast transform
@@ -256,10 +260,25 @@ private:
     sensor_msg.left_encoder = encoder_ticks_per_rad * wheel_pos_l;//(wheel_pos_l+turtlelib::PI);
     sensor_msg.right_encoder = encoder_ticks_per_rad * wheel_pos_r;//(wheel_pos_r+turtlelib::PI);
     sensor_publisher_->publish(sensor_msg);
+
+    // publish the path
+    auto pose = geometry_msgs::msg::PoseStamped();
+    pose.header.frame_id = "nusim/world";
+    pose.header.stamp = time_now;
+    pose.pose.position.x = turtle_pose_.transform.translation.x;
+    pose.pose.position.y = turtle_pose_.transform.translation.y;
+    pose.pose.position.z = turtle_pose_.transform.translation.z;
+    pose.pose.orientation = turtle_pose_.transform.rotation;
+
+    path_msg.poses.insert(path_msg.poses.end(), pose);
+    path_msg.header.stamp = time_now;
+
+    path_publisher_->publish(path_msg);
   }
 
   void sensor_timer_callback()
   {
+    auto time_now = get_clock()->now();
     publish_lidar_data();
     // sensor_normal_dist(gen);
     visualization_msgs::msg::MarkerArray sensed_obstacles_arr;
@@ -288,7 +307,7 @@ private:
         marker.scale.x, marker.scale.y, marker.scale.z,
         relative_config.translation().x + sensor_normal_dist(gen),
         relative_config.translation().y + sensor_normal_dist(gen),
-        marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id, "g");
+        marker.pose.position.z, marker.id, action, turtle_pose_.child_frame_id, "y", time_now);
 
       sensed_obstacles_arr.markers.insert(
         sensed_obstacles_arr.markers.end(),
@@ -396,11 +415,17 @@ private:
     double scaleX, double scaleY, double scaleZ,
     double posX, double posY, double posZ, double id,
     int action = visualization_msgs::msg::Marker::ADD,
-    std::string frame_id = "nusim/world", std::string color = "r")
+    std::string frame_id = "nusim/world", std::string color = "r",
+    rclcpp::Time time_now = rclcpp::Time())
   {
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = frame_id;
-    marker.header.stamp = get_clock()->now();
+    if(time_now.seconds()==0){
+        marker.header.stamp = get_clock()->now();
+    } else {
+        marker.header.stamp = time_now;
+    }
+    
     marker.ns = "";
     marker.id = id;
     marker.type = visualization_msgs::msg::Marker::CYLINDER;
@@ -413,8 +438,9 @@ private:
     marker.scale.z = scaleZ;
     if (color == "r"){
         marker.color.r = 1.0;
-    } else if (color == "g"){
-        marker.color.g = 1.0;
+    } else if (color == "y"){
+        marker.color.r = 1.0;
+        marker.color.g = 0.87;
     }
     marker.color.a = 1.0;
     return marker;
@@ -655,9 +681,12 @@ private:
   u_int64_t timestep_;
   visualization_msgs::msg::MarkerArray obstacles_arr;
   visualization_msgs::msg::MarkerArray walls_arr;
+  nav_msgs::msg::Path path_msg;
 
   rclcpp::Subscription<nuturtlebot_msgs::msg::WheelCommands>::SharedPtr sub_wheel_cmd_;
   rclcpp::Publisher<nuturtlebot_msgs::msg::SensorData>::SharedPtr sensor_publisher_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
+
   double motor_cmd_per_rad_sec{};
   double wheel_vel_r{};
   double wheel_vel_l{};
