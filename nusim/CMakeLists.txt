@@ -37,7 +37,9 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(nusim src/nusim.cpp)
-ament_target_dependencies(nusim rclcpp std_msgs std_srvs tf2_ros tf2 geometry_msgs nusim_interfaces visualization_msgs nuturtlebot_msgs sensor_msgs tf2_geometry_msgs nav_msgs)
+ament_target_dependencies(nusim rclcpp std_msgs std_srvs tf2_ros tf2 geometry_msgs
+    nusim_interfaces visualization_msgs nuturtlebot_msgs sensor_msgs tf2_geometry_msgs
+    nav_msgs)
 target_link_libraries(nusim turtlelib::turtlelib)
 
 install(TARGETS
