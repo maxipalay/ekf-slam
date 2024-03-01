@@ -162,7 +162,7 @@ TEST_CASE("turtle_control_joint_states", "[integration]") {
 
   REQUIRE_THAT(
     joint_state->position.at(0),
-    Catch::Matchers::WithinAbs(expected.position.at(0), 1.0E-1));
+    Catch::Matchers::WithinAbs(turtlelib::normalize_angle(expected.position.at(0)), 1.0E-1));
   REQUIRE_THAT(
     joint_state->position.at(1),
     Catch::Matchers::WithinAbs(expected.position.at(1), 1.0E-1));
