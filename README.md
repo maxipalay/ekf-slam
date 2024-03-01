@@ -31,4 +31,5 @@ The odometry test recorded in the video showed a final error of roughly 0.29 met
 
 Driving a circle around 4 landmarks in simulation. Green robot represents SLAM estimation, red robot represents ground truth in simulation, blue robot represents odometry-based localization.
 
-![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/16e81a37-0733-46a7-81de-01b3f7a6e7ec)
+![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/b29dbed4-4ae7-4b05-8a15-ad73554f5f96)
+
