@@ -37,6 +37,7 @@
 * Task C.9 (Robot Position)
 * Task C.10 (Basic Sensor)
 * Task C.11 (Collision Detection)
+* Task C.12 (Lidar)
 
 ## Task D (Kinematics) (TODO)
 * Task D.1 (DiffDrive class)
@@ -56,4 +57,11 @@
 * Task F.5 (Physical Testing)
 * Task F.6 (Laser scanner)
 
+## Task V (Visualization)
+* Task V.1 (Simulation Standalone)
+* Task V.2 (Simulation with Odometry)
+* Task V.4 (Simulated Robot With SLAM)
 
+## Task L (SLAM)
+* Task L.1 (Main SLAM Results)
+* Task L.2 (SLAM in controlled environment)
