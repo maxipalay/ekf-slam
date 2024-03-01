@@ -700,7 +700,7 @@ private:
       if (closest_distance < msg.range_min) {
         closest_distance = msg.range_min;
       }
-      msg.ranges.insert(msg.ranges.end(), closest_distance+sensor_normal_dist(gen));
+      msg.ranges.insert(msg.ranges.end(), closest_distance + sensor_normal_dist(gen));
     }
     laser_publisher_->publish(msg);
   }
