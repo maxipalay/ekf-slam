@@ -9,9 +9,11 @@
 ///     wheel_left (string): name of the left wheel link
 ///     wheel_right (string): name of the right wheel link
 ///     rate (double): rate at which odometry is published (default 100)
+///     path_rate (double): rate at which the path is published
 /// PUBLISHES:
 ///     odom (nav_msgs::msg::Odometry): turtlebot odometry
 ///     tf (tf2 transform broadcast): transform between odom frame and body frame
+///     blue/path (nav_msgs/msg/path): path the robot follows in the odometry frame
 /// SUBSCRIBES:
 ///     joint_states (sensor_msgs::msg::JointState): wheels position
 /// SERVICES:
@@ -52,6 +54,7 @@ public:
     declare_parameter("wheel_right", rclcpp::ParameterType::PARAMETER_STRING);
     declare_parameter("odom_id", "odom");
     declare_parameter("rate", 100.0);
+    declare_parameter("path_rate", 5.0);
 
     wheel_radius = get_parameter("wheel_radius").as_double();
     wheel_track = get_parameter("track_width").as_double();
@@ -63,6 +66,9 @@ public:
     // calculate timer step
     std::chrono::milliseconds timer_step =
       (std::chrono::milliseconds)(int)(1000.0 / get_parameter("rate").as_double());
+
+    std::chrono::milliseconds path_timer_step =
+      (std::chrono::milliseconds)(int)(1000.0 / get_parameter("path_rate").as_double());
 
     // initialize odom data
     odom_msg.header.frame_id = odom_id;
@@ -93,6 +99,10 @@ public:
     timer_ = create_wall_timer(
       timer_step, std::bind(&Odometry::timerCallback, this));
 
+    // timer path publisher
+    timer_path_ = create_wall_timer(
+      path_timer_step, std::bind(&Odometry::pathTimerCallback, this));
+
     path_publisher_ = create_publisher<nav_msgs::msg::Path>("blue/path", 10);
     path_msg = nav_msgs::msg::Path();
     path_msg.header.frame_id = odom_id;
@@ -104,6 +114,25 @@ private:
   {
     pub_odom_->publish(odom_msg);
     tf_broadcaster_->sendTransform(odom_transform);
+  }
+
+  void pathTimerCallback()
+  {
+    // publish path
+    auto time_now = get_clock()->now();
+    auto pose = geometry_msgs::msg::PoseStamped();
+    pose.header.frame_id = odom_id;
+    pose.header.stamp = time_now;
+    auto current_configuration = prev_transform;
+    pose.pose.position.x = current_configuration.translation().x;
+    pose.pose.position.y = current_configuration.translation().y;
+    pose.pose.orientation.x = 0.0; // will always be zero in planar rotations
+    pose.pose.orientation.y = 0.0; // will always be zero in planar rotations
+    pose.pose.orientation.z = std::sin(current_configuration.rotation() / 2.0);
+    pose.pose.orientation.w = std::cos(current_configuration.rotation() / 2.0);
+    path_msg.poses.insert(path_msg.poses.end(), pose);
+    path_msg.header.stamp = time_now;
+    path_publisher_->publish(path_msg);
   }
 
   void poseCallback(
@@ -171,7 +200,7 @@ private:
       path_msg.poses.insert(path_msg.poses.end(), pose);
       path_msg.header.stamp = time_now;
 
-      path_publisher_->publish(path_msg);
+      //   path_publisher_->publish(path_msg);
 
     } else {
       first_joints_cb = false;
@@ -199,6 +228,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   nav_msgs::msg::Path path_msg;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
+  rclcpp::TimerBase::SharedPtr timer_path_;
 
 };
 
