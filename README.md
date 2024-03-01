@@ -11,6 +11,7 @@ This repository consists of several ROS packages
 - `nusim_interfaces` - Custom service/message definitions for nusim.
 - `nuturtle_control` - ROS2 control interface for a turtlebot running the custom MSR code.
 - `nuturtle_control_interfaces` - Custom service/message definitions for `nuturtle_control`.
+- `nuslam` - Feature based EKF SLAM implementation.
 
 There is also a C++ library
 
@@ -25,3 +26,9 @@ There is also a C++ library
 https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/9d8e40f0-de09-4377-83a5-25810adaf671
 
 The odometry test recorded in the video showed a final error of roughly 0.29 meters. This test was performed using encoder odometry solely.
+
+# SLAM test
+
+Driving a circle around 4 landmarks in simulation. Green robot represents SLAM estimation, red robot represents ground truth in simulation, blue robot represents odometry-based localization.
+
+![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/16e81a37-0733-46a7-81de-01b3f7a6e7ec)
