@@ -581,7 +581,7 @@ private:
 
       // check if we hit any obstacles
       auto collision = false;
-      auto closest_distance = 3.0;
+      auto closest_distance = sensor_max_range;
       //auto closest_transform = turtlelib::Transform2D{};
       for (size_t j = 0; j < obstacles_arr.markers.size(); j++) {
         auto marker = obstacles_arr.markers.at(j);
@@ -700,7 +700,7 @@ private:
       if (closest_distance < msg.range_min) {
         closest_distance = msg.range_min;
       }
-      msg.ranges.insert(msg.ranges.end(), closest_distance);
+      msg.ranges.insert(msg.ranges.end(), closest_distance+sensor_normal_dist(gen));
     }
     laser_publisher_->publish(msg);
   }
