@@ -22,6 +22,7 @@ find_package(turtlelib REQUIRED)
 find_package(nuturtlebot_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -36,7 +37,7 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(nusim src/nusim.cpp)
-ament_target_dependencies(nusim rclcpp std_msgs std_srvs tf2_ros tf2 geometry_msgs nusim_interfaces visualization_msgs nuturtlebot_msgs sensor_msgs tf2_geometry_msgs)
+ament_target_dependencies(nusim rclcpp std_msgs std_srvs tf2_ros tf2 geometry_msgs nusim_interfaces visualization_msgs nuturtlebot_msgs sensor_msgs tf2_geometry_msgs nav_msgs)
 target_link_libraries(nusim turtlelib::turtlelib)
 
 install(TARGETS
