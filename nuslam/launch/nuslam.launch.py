@@ -19,6 +19,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'cmd_src',
             description="control the source of velocity commands.",
+            default_value="teleop",
             choices=["circle", "teleop", "none"]),
         DeclareLaunchArgument(
             'robot',
@@ -26,7 +27,7 @@ def generate_launch_description():
             choices=["nusim", "localhost", "none"]),
         DeclareLaunchArgument(
             'use_rviz',
-            default_value='false',
+            default_value='true',
             description="controls whether rviz is launched.",
             choices=["true", "false"]),
         SetLaunchConfiguration(
