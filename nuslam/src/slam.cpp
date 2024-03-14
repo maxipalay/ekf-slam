@@ -117,7 +117,7 @@ public:
     sigma_zero = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2).eye();
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2) *= 10e6;
-    sigma_hat_t_minus_1 = sigma_zero;
+    sigma_hat = sigma_zero;
     // calculate Q bar (equation 22)
     q_bar = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     q_bar.submat(0, 0, 2, 2) = arma::mat(3, 3, arma::fill::eye) * q_noise;
@@ -199,7 +199,7 @@ private:
       a_t(2, 0) = dx;
 
       // equation 21
-      arma::mat sigma_hat_minus = a_t * sigma_hat_t_minus_1 * a_t.t() + q_bar;
+      sigma_hat = a_t * sigma_hat * a_t.t() + q_bar;
 
       // update the state with the measurements
       for (size_t i = 0; i < fake_sensor_data_.markers.size(); i++) {
@@ -234,22 +234,18 @@ private:
             state(2 * marker.id + 3) - state(1)) - state(0);
           b_estimated = turtlelib::normalize_angle(b_estimated);
 
-          //   RCLCPP_INFO_STREAM(get_logger(), "measured range: "<< range <<std::endl);
-          //   RCLCPP_INFO_STREAM(get_logger(), "est range: "<< r_estimated <<std::endl);
-          //   RCLCPP_INFO_STREAM(get_logger(), "measured bearing: "<< bearing <<std::endl);
-          //   RCLCPP_INFO_STREAM(get_logger(), "est bearing: "<< b_estimated <<std::endl);
+            RCLCPP_INFO_STREAM(get_logger(), "measured range: "<< range <<std::endl);
+            RCLCPP_INFO_STREAM(get_logger(), "est range: "<< r_estimated <<std::endl);
+            RCLCPP_INFO_STREAM(get_logger(), "measured bearing: "<< bearing <<std::endl);
+            RCLCPP_INFO_STREAM(get_logger(), "est bearing: "<< b_estimated <<std::endl);
 
           // translate estimated measurement to x,y coordinates (r)
           double m_x_hat = state(1) + r_estimated * std::cos(
-            turtlelib::normalize_angle(
-              state(
-                0)) + turtlelib::normalize_angle(b_estimated));
+              state(0) + b_estimated);
           double m_y_hat = state(2) + r_estimated * std::sin(
-            turtlelib::normalize_angle(
-              state(
-                0)) + turtlelib::normalize_angle(b_estimated));
+            state(0) + b_estimated);
 
-
+        
           double delta_x_hat = m_x_hat - state(1);
           double delta_y_hat = m_y_hat - state(2);
 
@@ -265,7 +261,7 @@ private:
 
           H_j.submat(0, 0, 1, 2) = {{0.0, -delta_x_hat / std::sqrt(d_hat), -delta_y_hat / std::sqrt(
               d_hat)},
-            {-1, delta_y_hat / d_hat, -delta_x_hat / d_hat},
+            {-1.0, delta_y_hat / d_hat, -delta_x_hat / d_hat},
           };
 
           H_j.submat(0, 3 + 2 * marker.id, 1, 3 + 2 * marker.id + 1) = {
@@ -274,10 +270,15 @@ private:
           };
 
           // kalman gain
-          arma::mat Ki = sigma_hat_minus * H_j.t() * arma::inv(H_j * sigma_hat_minus * H_j.t() + R);
+          arma::mat Ki = sigma_hat * H_j.t() * arma::inv(H_j * sigma_hat * H_j.t() + R);
           //   RCLCPP_INFO_STREAM(get_logger(), "Ki: "<< Ki <<std::endl);
           // update state with measurement error
+
+          arma::vec z_diff = z_t - z_t_hat;
+          z_diff(1) = turtlelib::normalize_angle(z_diff(1));
+
           state = state + Ki * (z_t - z_t_hat);
+          //RCLCPP_INFO_STREAM(get_logger(), "z_err after: "<< z_t - z_t_hat <<std::endl);
 
           // normalize angle for consistency
           state(0) = turtlelib::normalize_angle(state(0));
@@ -286,13 +287,13 @@ private:
           arma::mat sigma_t =
             (arma::mat(
               2 * n_landmarks + 3, 2 * n_landmarks + 3,
-              arma::fill::eye) - Ki * H_j) * sigma_hat_minus;
-          sigma_hat_minus = sigma_t;
+              arma::fill::eye) - Ki * H_j) * sigma_hat;
+          sigma_hat = sigma_t;
         }
       }
 
 
-      sigma_hat_t_minus_1 = sigma_hat_minus;
+    //   sigma_hat_t_minus_1 = sigma_hat_minus;
 
       // make the estimated state into a Transform
       turtlelib::Transform2D t_world_robot{{state(1), state(2)}, state(0)};
@@ -466,11 +467,11 @@ private:
   visualization_msgs::msg::MarkerArray fake_sensor_data_;
   // initialization
   int n_landmarks{20};
-  double q_noise{1e-3};
-  double r_noise{1e-4};
+  double q_noise{1.0e6}; // 1e-3
+  double r_noise{1.0e-2}; // 1e-4
   // equation 19
   arma::mat sigma_zero;
-  arma::mat sigma_hat_t_minus_1;
+  arma::mat sigma_hat;
   arma::mat state = arma::vec(2 * n_landmarks + 3, arma::fill::zeros);
   arma::mat q_bar;
   arma::mat R;
