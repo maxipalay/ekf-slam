@@ -189,6 +189,13 @@ namespace turtlelib
     /// \param after - second angle
     /// \return the angle between the after and before, preserving sign
     double angle_diff(const double before, const double after);
+
+
+    /// \brief return the distance between two points
+    /// \param p1 - point 1
+    /// \param p2 - point 2
+    /// \return the distance between the two points
+    double distance(const Point2D p1, const Point2D p2);
 }
 
 #endif
