@@ -29,6 +29,11 @@ target_link_libraries(slam ${ARMADILLO_LIBRARIES} turtlelib::turtlelib)
 ament_target_dependencies(slam rclcpp geometry_msgs sensor_msgs nuturtlebot_msgs
     nav_msgs tf2 tf2_ros nuturtle_control_interfaces visualization_msgs)
 
+add_executable(landmarks src/landmarks.cpp)
+include_directories(landmarks ${ARMADILLO_INCLUDE_DIRS})
+target_link_libraries(landmarks ${ARMADILLO_LIBRARIES} turtlelib::turtlelib)
+ament_target_dependencies(landmarks rclcpp visualization_msgs)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -43,6 +48,7 @@ endif()
 
 install(TARGETS
   slam
+  landmarks
   DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files.
