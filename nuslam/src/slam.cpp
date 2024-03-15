@@ -113,17 +113,31 @@ public:
         &Slam::fake_sensor_cb, this,
         std::placeholders::_1));
 
-    // initialize slam variables
-    sigma_zero = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
+
+
+    // covariance matrix // OK
+    arma::mat sigma_zero = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2).eye();
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2) *= 10e6;
-    sigma_hat = sigma_zero;
-    // calculate Q bar (equation 22)
+    
+    sigma = sigma_zero;
+
+    //RCLCPP_INFO_STREAM(get_logger(), "sigma_zero: "<< sigma_zero <<std::endl);
+    /////////////
+
+    
+    // calculate Q bar (equation 22) // OK
     q_bar = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     q_bar.submat(0, 0, 2, 2) = arma::mat(3, 3, arma::fill::eye) * q_noise;
-    R = arma::mat(2, 2, arma::fill::zeros);
+    //RCLCPP_INFO_STREAM(get_logger(), "q_bar: "<< q_bar <<std::endl);
+    /////////////
+    
+    // R // OK
     R = arma::mat(2, 2, arma::fill::eye) * r_noise;
 
+    //RCLCPP_INFO_STREAM(get_logger(), "R: "<< R <<std::endl);
+    /////////////
+    
     path_publisher_ = create_publisher<nav_msgs::msg::Path>("green/path", 10);
     path_msg = nav_msgs::msg::Path();
     path_msg.header.frame_id = "map";
@@ -167,147 +181,116 @@ private:
   {
     fake_sensor_data_ = msg;
 
-  }
+    auto current_configuration = t_map_odom * t_odom_robot;
 
-  void timerCallback()
-  {
-    pub_odom_->publish(odom_msg);
-    tf_broadcaster_->sendTransform(odom_transform);
+    state(0) = turtlelib::normalize_angle(current_configuration.rotation());
+    state(1) = current_configuration.translation().x;
+    state(2) = current_configuration.translation().y;
 
-    // get the time
-    auto time_now = get_clock()->now();
-    if (fake_sensor_data_.markers.size() > 0) {
-      // EKF update
+    auto dx = current_configuration.translation().x - filter_previous_configuration.translation().x;
+    auto dy = current_configuration.translation().y - filter_previous_configuration.translation().y;
 
-      // get the current configuration
-      auto current_configuration = t_map_odom * t_odom_robot;
+    // eqns 9, 10
+    arma::mat At = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye);
+    At(1,0) = -dy;
+    At(2,0) = dx;
 
-      // tranlsation difference, dx, dy
-      double dx = current_configuration.translation().x -
-        filter_previous_configuration.translation().x;
-      double dy = current_configuration.translation().y -
-        filter_previous_configuration.translation().y;
+    sigma = At * sigma * At.t() + q_bar;
 
-      // update the state
-      state(0) = turtlelib::normalize_angle(current_configuration.rotation());
-      state(1) = current_configuration.translation().x;
-      state(2) = current_configuration.translation().y;
-
-      // calculate A_t (equation 10)
-      arma::mat a_t(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye);
-      a_t(1, 0) = -dy;
-      a_t(2, 0) = dx;
-
-      // equation 21
-      sigma_hat = a_t * sigma_hat * a_t.t() + q_bar;
-
-      // update the state with the measurements
-      for (size_t i = 0; i < fake_sensor_data_.markers.size(); i++) {
-        auto marker = fake_sensor_data_.markers.at(i);
+    // iterate over the measurements
+    for (size_t i = 0; i < fake_sensor_data_.markers.size(); i++) {
+        // grab the marker
+        auto marker = fake_sensor_data_.markers.at(i); 
+        // if the marker is not in delete
         if (marker.action != visualization_msgs::msg::Marker::DELETE) {
-          // RCLCPP_INFO_STREAM(get_logger(), "obstacle action: "<<marker.action <<std::endl);
-          double x_bar = marker.pose.position.x;
-          double y_bar = marker.pose.position.y;
 
-          // measured range and bearing
-          double range = std::sqrt(std::pow(x_bar, 2) + std::pow(y_bar, 2));
-          double bearing = std::atan2(y_bar, x_bar);
-          arma::vec z_t = {range, bearing};
+            // eqs 11, 12
+            auto meas_range = std::sqrt(std::pow(marker.pose.position.x, 2)+std::pow(marker.pose.position.y, 2)); // the marker is in relative x,y already
+            auto meas_bearing = std::atan2(marker.pose.position.y, marker.pose.position.x);
+            
+            // initialize the marker in the state if we haven't seen it
+            if (state(3 + marker.id * 2) == 0.0 && state(3 + marker.id * 2 + 1) == 0.0){
+                state(3 + marker.id * 2) = state(1) + meas_range * std::cos(meas_bearing + state(0));
+                state(3 + marker.id * 2 + 1) = state(2) + meas_range * std::sin(meas_bearing + state(0));
+            }
 
-          // initialize the obstacle if we havent seen it before
-          if (state(2 * marker.id + 3) == 0.0 && state(2 * marker.id + 3 + 1) == 0.0) {
-            state(2 * marker.id + 3) = state(1) + range *
-              std::cos(turtlelib::normalize_angle(bearing) + state(0));
-            state(2 * marker.id + 3 + 1) = state(2) + range *
-              std::sin(turtlelib::normalize_angle(bearing) + state(0));
-          }
+            // estimated measurement eq 14
+            auto est_range = std::sqrt(
+                std::pow(state(3 + marker.id * 2) - state(1), 2) +
+                std::pow(state(3 + marker.id * 2 + 1) - state(2), 2)
+            );
+            auto est_bearing = std::atan2(state(3 + marker.id * 2 + 1) - state(2), state(3 + marker.id * 2) - state(1)) - state(0);
+            est_bearing = turtlelib::normalize_angle(est_bearing);
 
-          // if we were at state(1), state(2), what would be the measurements? (measurement model)
-          double r_estimated =
-            std::sqrt(
-            std::pow(
-              state(2 * marker.id + 3) - state(1),
-              2) + std::pow(state(2 * marker.id + 3 + 1) - state(2), 2));
-          double b_estimated =
-            std::atan2(
-            state(2 * marker.id + 3 + 1) - state(2),
-            state(2 * marker.id + 3) - state(1)) - state(0);
-          b_estimated = turtlelib::normalize_angle(b_estimated);
+            // eq 25
+            arma::vec z = {meas_range, meas_bearing};
+            arma::vec z_hat = {est_range, est_bearing};
 
-            RCLCPP_INFO_STREAM(get_logger(), "measured range: "<< range <<std::endl);
-            RCLCPP_INFO_STREAM(get_logger(), "est range: "<< r_estimated <<std::endl);
-            RCLCPP_INFO_STREAM(get_logger(), "measured bearing: "<< bearing <<std::endl);
-            RCLCPP_INFO_STREAM(get_logger(), "est bearing: "<< b_estimated <<std::endl);
+            // eqs 16, 17
+            auto delta_x = state(3 + marker.id * 2) - state(1);
+            auto delta_y = state(3 + marker.id * 2 + 1) - state(2);
 
-          // translate estimated measurement to x,y coordinates (r)
-          double m_x_hat = state(1) + r_estimated * std::cos(
-              state(0) + b_estimated);
-          double m_y_hat = state(2) + r_estimated * std::sin(
-            state(0) + b_estimated);
+            auto d = delta_x * delta_x + delta_y * delta_y;
 
-        
-          double delta_x_hat = m_x_hat - state(1);
-          double delta_y_hat = m_y_hat - state(2);
+            // eqn 18
+            arma::mat Hj = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
+            Hj(0,1) = -delta_x / std::sqrt(d);
+            Hj(0,2) = -delta_y / std::sqrt(d);
+            Hj(1,0) = -1.0;
+            Hj(1,1) = delta_y / d;
+            Hj(1,2) = -delta_x / d;
+            Hj(0, 3 + 2 * marker.id) = delta_x / std::sqrt(d);
+            Hj(0, 3 + 2 * marker.id + 1) = delta_y / std::sqrt(d);
+            Hj(1, 3 + 2 * marker.id) = -delta_y / d;
+            Hj(1, 3 + 2 * marker.id + 1) = delta_x / d;
 
-          double d_hat = std::pow(delta_x_hat, 2) + std::pow(delta_y_hat, 2);
+            // eq 26
+            arma::mat K = sigma * Hj.t() * arma::inv(Hj * sigma * Hj.t() + R);
 
-          arma::vec z_t_hat = {
-            r_estimated,
-            b_estimated
-          };
+            // eq 27
+            arma::vec z_diff = z - z_hat;
+            z_diff(1) = turtlelib::normalize_angle(z_diff(1));
 
-          // set up H_i
-          arma::mat H_j = arma::mat(2, 3 + 2 * n_landmarks, arma::fill::zeros);
+            // RCLCPP_INFO_STREAM(get_logger(), "k * zdiff: "<< K*z_diff <<std::endl);
+            //RCLCPP_INFO_STREAM(get_logger(), "z diff size: "<< z_diff <<std::endl);
 
-          H_j.submat(0, 0, 1, 2) = {{0.0, -delta_x_hat / std::sqrt(d_hat), -delta_y_hat / std::sqrt(
-              d_hat)},
-            {-1.0, delta_y_hat / d_hat, -delta_x_hat / d_hat},
-          };
+            state = state + K * z_diff;
 
-          H_j.submat(0, 3 + 2 * marker.id, 1, 3 + 2 * marker.id + 1) = {
-            {delta_x_hat / std::sqrt(d_hat), delta_y_hat / std::sqrt(d_hat)},
-            {-delta_y_hat / d_hat, delta_x_hat / d_hat}
-          };
+            // eq 28
+            sigma = (arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye) - K * Hj) * sigma;
 
-          // kalman gain
-          arma::mat Ki = sigma_hat * H_j.t() * arma::inv(H_j * sigma_hat * H_j.t() + R);
-          //   RCLCPP_INFO_STREAM(get_logger(), "Ki: "<< Ki <<std::endl);
-          // update state with measurement error
+            state(0) = turtlelib::normalize_angle(state(0));
 
-          arma::vec z_diff = z_t - z_t_hat;
-          z_diff(1) = turtlelib::normalize_angle(z_diff(1));
-
-          state = state + Ki * (z_t - z_t_hat);
-          //RCLCPP_INFO_STREAM(get_logger(), "z_err after: "<< z_t - z_t_hat <<std::endl);
-
-          // normalize angle for consistency
-          state(0) = turtlelib::normalize_angle(state(0));
-
-          // recalculate sigma & update
-          arma::mat sigma_t =
-            (arma::mat(
-              2 * n_landmarks + 3, 2 * n_landmarks + 3,
-              arma::fill::eye) - Ki * H_j) * sigma_hat;
-          sigma_hat = sigma_t;
+            // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
         }
-      }
+    }
 
-
-    //   sigma_hat_t_minus_1 = sigma_hat_minus;
-
-      // make the estimated state into a Transform
-      turtlelib::Transform2D t_world_robot{{state(1), state(2)}, state(0)};
+    turtlelib::Transform2D filter_configuration = turtlelib::Transform2D{{state(1), state(2)}, state(0)};
 
       // get the transform map->odom
-      t_map_odom = t_world_robot * t_odom_robot.inv();
+    t_map_odom = filter_configuration * t_odom_robot.inv();
 
-      // save this as the previous configuration
-      filter_previous_configuration = t_world_robot;
+    // broadcast the transform
 
-      // publish markers
+    map_transform.header.stamp = msg.markers.at(0).header.stamp;
+    map_transform.transform.translation.x = t_map_odom.translation().x;
+    map_transform.transform.translation.y = t_map_odom.translation().y;
+    map_transform.transform.rotation.x = 0.0; // will always be zero in planar rotations
+    map_transform.transform.rotation.y = 0.0; // will always be zero in planar rotations
+    map_transform.transform.rotation.z = std::sin(t_map_odom.rotation() / 2.0);
+    map_transform.transform.rotation.w = std::cos(t_map_odom.rotation() / 2.0);
+
+    tf_broadcaster_->sendTransform(map_transform);
+
+    filter_previous_configuration = filter_configuration;
+
+
+    // publish markers
+
+    //   // publish markers
       visualization_msgs::msg::MarkerArray sensed_obstacles;
 
-      for (size_t i = 0; i < fake_sensor_data_.markers.size(); i++) {
+      for (size_t i = 0; i < msg.markers.size(); i++) {
         // add the estimated marker to the marker array
         auto marker = fake_sensor_data_.markers.at(i);
         auto sensed_marker = create_obstacle(
@@ -323,21 +306,13 @@ private:
           sensed_marker);
       }
       sensed_obstacles_publisher_->publish(sensed_obstacles);
+ 
+  }
 
-      fake_sensor_data_.markers.clear();
-    }
-    // broadcast the transform
-
-    map_transform.header.stamp = time_now;
-    map_transform.transform.translation.x = t_map_odom.translation().x;
-    map_transform.transform.translation.y = t_map_odom.translation().y;
-    map_transform.transform.rotation.x = 0.0; // will always be zero in planar rotations
-    map_transform.transform.rotation.y = 0.0; // will always be zero in planar rotations
-    map_transform.transform.rotation.z = std::sin(t_map_odom.rotation() / 2.0);
-    map_transform.transform.rotation.w = std::cos(t_map_odom.rotation() / 2.0);
-
-    tf_broadcaster_->sendTransform(map_transform);
-
+  void timerCallback()
+  {
+    pub_odom_->publish(odom_msg);
+    tf_broadcaster_->sendTransform(odom_transform);
   }
 
   visualization_msgs::msg::Marker create_obstacle(
@@ -466,12 +441,12 @@ private:
   rclcpp::Subscription<visualization_msgs::msg::MarkerArray>::SharedPtr sub_fake_sensor_;
   visualization_msgs::msg::MarkerArray fake_sensor_data_;
   // initialization
-  int n_landmarks{20};
-  double q_noise{1.0e6}; // 1e-3
-  double r_noise{1.0e-2}; // 1e-4
+  int n_landmarks{5};
+  double q_noise{1.0e-2}; // 1e-3
+  double r_noise{1.0e-4}; // 1e-4
   // equation 19
-  arma::mat sigma_zero;
-  arma::mat sigma_hat;
+
+  arma::mat sigma;
   arma::mat state = arma::vec(2 * n_landmarks + 3, arma::fill::zeros);
   arma::mat q_bar;
   arma::mat R;
