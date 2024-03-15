@@ -85,7 +85,7 @@ public:
     declare_parameter("collision_radius", rclcpp::ParameterType::PARAMETER_DOUBLE);
     declare_parameter("input_noise", 0.1);
     declare_parameter("slip_fraction", 0.1);
-    declare_parameter("basic_sensor_variance", 0.01);//0.01
+    declare_parameter("basic_sensor_variance", 0.001);//0.01
     declare_parameter("sensor_rate", 5.0);
     declare_parameter("max_range", 5.0);
     declare_parameter("path_rate", 5.0);
