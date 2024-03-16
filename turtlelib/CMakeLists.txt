@@ -12,6 +12,7 @@ project(turtlelib)
 # provided are package specific.  Usually there is then a CMAKE variable
 # That is defined to reference the library
 find_package(Doxygen)
+find_package(Armadillo REQUIRED)
 
 include(CTest)
 
@@ -49,7 +50,7 @@ endif()
 # you don't need or want to.
 # name is the name of the library without the extension or lib prefix
 # name creates a cmake "target"
-add_library(turtlelib src/geometry2d.cpp src/svg.cpp src/se2d.cpp src/diff_drive.cpp)
+add_library(turtlelib src/geometry2d.cpp src/svg.cpp src/se2d.cpp src/diff_drive.cpp src/landmark_detection.cpp)
 
 # Use target_include_directories so that #include"mylibrary/header.hpp" works
 # The use of the <BUILD_INTERFACE> and <INSTALL_INTERFACE> is because when
@@ -59,9 +60,11 @@ add_library(turtlelib src/geometry2d.cpp src/svg.cpp src/se2d.cpp src/diff_drive
 # system include/ directory
 target_include_directories(turtlelib
     PUBLIC
+    ${ARMADILLO_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
+target_link_libraries(turtlelib ${ARMADILLO_LIBRARIES})
 # specify additional compilation flags for the library
 # Public causes the flags to propagate to anything
 # that links against this library
