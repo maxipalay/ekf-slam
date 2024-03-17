@@ -72,7 +72,7 @@ private:
     for (size_t i = 0; i < msg.ranges.size(); i++) {
       double current_reading_angle = turtlelib::normalize_angle(
         static_cast<double>(i) * msg.angle_increment) + msg.angle_min;
-      double x = msg.ranges.at(i) * std::cos(current_reading_angle);
+      double x = msg.ranges.at(i) * std::cos(current_reading_angle) - 0.032;
       double y = msg.ranges.at(i) * std::sin(current_reading_angle);
 
       auto curr_point = turtlelib::Point2D{x, y};
