@@ -15,6 +15,7 @@
 ///     odom (nav_msgs::msg::Odometry): turtlebot odometry
 ///     tf (tf2 transform broadcast): transform between odom frame and body frame
 ///     /red/path (nav_msgs::msg::Path): path followed by the robot in the map frame
+///     green/obstacles (visualization_msgs::msg::MarkerArray): marker array containing the estimation obstacles
 /// SUBSCRIBES:
 ///     joint_states (sensor_msgs::msg::JointState): wheels position
 /// SERVICES:
@@ -57,7 +58,7 @@ public:
     declare_parameter("odom_id", "odom");
     declare_parameter("sensor_source", "sim");
     declare_parameter("rate", 100.0);
-    declare_parameter("path_rate", 5.0);
+    declare_parameter("path_rate", 1.0);
 
     wheel_radius = get_parameter("wheel_radius").as_double();
     wheel_track = get_parameter("track_width").as_double();
@@ -310,7 +311,7 @@ private:
 
   void sensor_cb(const visualization_msgs::msg::MarkerArray & msg)
   {
-
+    
     auto current_configuration = t_map_odom * t_odom_robot;
 
     state(0) = turtlelib::normalize_angle(current_configuration.rotation());
@@ -349,7 +350,7 @@ private:
 
         // for each landmark k (including the recently added)
         for (size_t k = 0; k < counter_obstacles; k++){
-            RCLCPP_INFO_STREAM(get_logger(), "for loop - k = " << k <<std::endl);
+            //RCLCPP_INFO_STREAM(get_logger(), "for loop - k = " << k <<std::endl);
             // estimated measurement eq 14
             auto est_range = std::sqrt(
                 std::pow(state(3 + k * 2) - state(1), 2) +
@@ -389,16 +390,16 @@ private:
 
             arma::vec mah = z_diff.t() * arma::inv(psi) * z_diff;
 
-
+            
             auto dist = mah(0);
-
+            
             if (k == counter_obstacles - 1){ // the newly added landmark
                 dist = mah_threshold;
             }
         
-            RCLCPP_INFO_STREAM(get_logger(), "for loop - set mah distance" <<std::endl);
+            // RCLCPP_INFO_STREAM(get_logger(), "for loop - set mah distance" <<std::endl);
             mahanalobis_distances(k) = dist;
-            RCLCPP_INFO_STREAM(get_logger(), "for loop - after set mah distance" <<std::endl);
+            // RCLCPP_INFO_STREAM(get_logger(), "for loop - after set mah distance" <<std::endl);
         
             // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
         
@@ -427,7 +428,6 @@ private:
             state(3 + counter_obstacles * 2 + 1) = 0.0;
 
         }
-
         // end landmark association
 
         // estimated measurement eq 14
@@ -474,7 +474,6 @@ private:
 
         state(0) = turtlelib::normalize_angle(state(0));
     }
-
     turtlelib::Transform2D filter_configuration = turtlelib::Transform2D{{state(1), state(2)}, state(0)};
 
       // get the transform map->odom
@@ -505,7 +504,7 @@ private:
           state(2 * i + 3),
           state(
             2 * i + 3 + 1),
-          0.1, i, visualization_msgs::msg::Marker::ADD, "map", "g",
+          0.125, i, visualization_msgs::msg::Marker::ADD, "map", "g",
           get_clock()->now());
 
         sensed_obstacles.markers.insert(
@@ -651,7 +650,7 @@ private:
   // initialization
   int n_landmarks{50};
   double q_noise{1.0e-2}; // 1e-3
-  double r_noise{1.0e-4}; // 1e-4
+  double r_noise{1.0e-2}; // 1e-4
   // equation 19
 
   unsigned int counter_obstacles = 0;
