@@ -112,32 +112,32 @@ public:
     auto sensor_qos_ = rclcpp::SystemDefaultsQoS{};
     sensor_qos_.transient_local();
 
-    if (sensor_source == "sim"){
-        sub_fake_sensor_ = create_subscription<visualization_msgs::msg::MarkerArray>(
+    if (sensor_source == "sim") {
+      sub_fake_sensor_ = create_subscription<visualization_msgs::msg::MarkerArray>(
         "nusim/fake_sensor", sensor_qos_, std::bind(
-            &Slam::fake_sensor_cb, this,
-            std::placeholders::_1));
+          &Slam::fake_sensor_cb, this,
+          std::placeholders::_1));
     } else if (sensor_source == "assoc") {
-    sub_sensor_ = create_subscription<visualization_msgs::msg::MarkerArray>(
-      "green/detected_obstacles", sensor_qos_, std::bind(
-        &Slam::sensor_cb, this,
-        std::placeholders::_1));
+      sub_sensor_ = create_subscription<visualization_msgs::msg::MarkerArray>(
+        "green/detected_obstacles", sensor_qos_, std::bind(
+          &Slam::sensor_cb, this,
+          std::placeholders::_1));
     }
 
     // covariance matrix
     arma::mat sigma_zero = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2).eye();
     sigma_zero.submat(3, 3, 2 * n_landmarks + 2, 2 * n_landmarks + 2) *= 10e6;
-    
+
     sigma = sigma_zero;
 
     // calculate Q bar (equation 22)
     q_bar = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::zeros);
     q_bar.submat(0, 0, 2, 2) = arma::mat(3, 3, arma::fill::eye) * q_noise;
-    
+
     // R
     R = arma::mat(2, 2, arma::fill::eye) * r_noise;
-    
+
     path_publisher_ = create_publisher<nav_msgs::msg::Path>("green/path", 10);
     path_msg = nav_msgs::msg::Path();
     path_msg.header.frame_id = "map";
@@ -192,82 +192,88 @@ private:
 
     // eqns 9, 10
     arma::mat At = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye);
-    At(1,0) = -dy;
-    At(2,0) = dx;
+    At(1, 0) = -dy;
+    At(2, 0) = dx;
 
     sigma = At * sigma * At.t() + q_bar;
 
     // iterate over the measurements
     for (size_t i = 0; i < fake_sensor_data_.markers.size(); i++) {
-        // grab the marker
-        auto marker = fake_sensor_data_.markers.at(i); 
-        // if the marker is not in delete
-        if (marker.action != visualization_msgs::msg::Marker::DELETE) {
+      // grab the marker
+      auto marker = fake_sensor_data_.markers.at(i);
+      // if the marker is not in delete
+      if (marker.action != visualization_msgs::msg::Marker::DELETE) {
 
-            // eqs 11, 12
-            auto meas_range = std::sqrt(std::pow(marker.pose.position.x, 2)+std::pow(marker.pose.position.y, 2)); // the marker is in relative x,y already
-            auto meas_bearing = std::atan2(marker.pose.position.y, marker.pose.position.x);
-            
-            // initialize the marker in the state if we haven't seen it
-            if (state(3 + marker.id * 2) == 0.0 && state(3 + marker.id * 2 + 1) == 0.0){
-                state(3 + marker.id * 2) = state(1) + meas_range * std::cos(meas_bearing + state(0));
-                state(3 + marker.id * 2 + 1) = state(2) + meas_range * std::sin(meas_bearing + state(0));
-            }
+        // eqs 11, 12
+        auto meas_range =
+          std::sqrt(std::pow(marker.pose.position.x, 2) + std::pow(marker.pose.position.y, 2));                   // the marker is in relative x,y already
+        auto meas_bearing = std::atan2(marker.pose.position.y, marker.pose.position.x);
 
-            // estimated measurement eq 14
-            auto est_range = std::sqrt(
-                std::pow(state(3 + marker.id * 2) - state(1), 2) +
-                std::pow(state(3 + marker.id * 2 + 1) - state(2), 2)
-            );
-            auto est_bearing = std::atan2(state(3 + marker.id * 2 + 1) - state(2), state(3 + marker.id * 2) - state(1)) - state(0);
-            est_bearing = turtlelib::normalize_angle(est_bearing);
-
-            // eq 25
-            arma::vec z = {meas_range, meas_bearing};
-            arma::vec z_hat = {est_range, est_bearing};
-
-            // eqs 16, 17
-            auto delta_x = state(3 + marker.id * 2) - state(1);
-            auto delta_y = state(3 + marker.id * 2 + 1) - state(2);
-
-            auto d = delta_x * delta_x + delta_y * delta_y;
-
-            // eqn 18
-            arma::mat Hj = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
-            Hj(0,1) = -delta_x / std::sqrt(d);
-            Hj(0,2) = -delta_y / std::sqrt(d);
-            Hj(1,0) = -1.0;
-            Hj(1,1) = delta_y / d;
-            Hj(1,2) = -delta_x / d;
-            Hj(0, 3 + 2 * marker.id) = delta_x / std::sqrt(d);
-            Hj(0, 3 + 2 * marker.id + 1) = delta_y / std::sqrt(d);
-            Hj(1, 3 + 2 * marker.id) = -delta_y / d;
-            Hj(1, 3 + 2 * marker.id + 1) = delta_x / d;
-
-            // eq 26
-            arma::mat K = sigma * Hj.t() * arma::inv(Hj * sigma * Hj.t() + R);
-
-            // eq 27
-            arma::vec z_diff = z - z_hat;
-            z_diff(1) = turtlelib::normalize_angle(z_diff(1));
-
-            // RCLCPP_INFO_STREAM(get_logger(), "k * zdiff: "<< K*z_diff <<std::endl);
-            //RCLCPP_INFO_STREAM(get_logger(), "z diff size: "<< z_diff <<std::endl);
-
-            state = state + K * z_diff;
-
-            // eq 28
-            sigma = (arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye) - K * Hj) * sigma;
-
-            state(0) = turtlelib::normalize_angle(state(0));
-
-            // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
+        // initialize the marker in the state if we haven't seen it
+        if (state(3 + marker.id * 2) == 0.0 && state(3 + marker.id * 2 + 1) == 0.0) {
+          state(3 + marker.id * 2) = state(1) + meas_range * std::cos(meas_bearing + state(0));
+          state(3 + marker.id * 2 + 1) = state(2) + meas_range * std::sin(meas_bearing + state(0));
         }
+
+        // estimated measurement eq 14
+        auto est_range = std::sqrt(
+          std::pow(state(3 + marker.id * 2) - state(1), 2) +
+          std::pow(state(3 + marker.id * 2 + 1) - state(2), 2)
+        );
+        auto est_bearing =
+          std::atan2(
+          state(3 + marker.id * 2 + 1) - state(2),
+          state(3 + marker.id * 2) - state(1)) - state(0);
+        est_bearing = turtlelib::normalize_angle(est_bearing);
+
+        // eq 25
+        arma::vec z = {meas_range, meas_bearing};
+        arma::vec z_hat = {est_range, est_bearing};
+
+        // eqs 16, 17
+        auto delta_x = state(3 + marker.id * 2) - state(1);
+        auto delta_y = state(3 + marker.id * 2 + 1) - state(2);
+
+        auto d = delta_x * delta_x + delta_y * delta_y;
+
+        // eqn 18
+        arma::mat Hj = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
+        Hj(0, 1) = -delta_x / std::sqrt(d);
+        Hj(0, 2) = -delta_y / std::sqrt(d);
+        Hj(1, 0) = -1.0;
+        Hj(1, 1) = delta_y / d;
+        Hj(1, 2) = -delta_x / d;
+        Hj(0, 3 + 2 * marker.id) = delta_x / std::sqrt(d);
+        Hj(0, 3 + 2 * marker.id + 1) = delta_y / std::sqrt(d);
+        Hj(1, 3 + 2 * marker.id) = -delta_y / d;
+        Hj(1, 3 + 2 * marker.id + 1) = delta_x / d;
+
+        // eq 26
+        arma::mat K = sigma * Hj.t() * arma::inv(Hj * sigma * Hj.t() + R);
+
+        // eq 27
+        arma::vec z_diff = z - z_hat;
+        z_diff(1) = turtlelib::normalize_angle(z_diff(1));
+
+        // RCLCPP_INFO_STREAM(get_logger(), "k * zdiff: "<< K*z_diff <<std::endl);
+        //RCLCPP_INFO_STREAM(get_logger(), "z diff size: "<< z_diff <<std::endl);
+
+        state = state + K * z_diff;
+
+        // eq 28
+        sigma =
+          (arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye) - K * Hj) * sigma;
+
+        state(0) = turtlelib::normalize_angle(state(0));
+
+        // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
+      }
     }
 
-    turtlelib::Transform2D filter_configuration = turtlelib::Transform2D{{state(1), state(2)}, state(0)};
+    turtlelib::Transform2D filter_configuration =
+      turtlelib::Transform2D{{state(1), state(2)}, state(0)};
 
-      // get the transform map->odom
+    // get the transform map->odom
     t_map_odom = filter_configuration * t_odom_robot.inv();
 
     // broadcast the transform
@@ -288,30 +294,30 @@ private:
     // publish markers
 
     //   // publish markers
-      visualization_msgs::msg::MarkerArray sensed_obstacles;
+    visualization_msgs::msg::MarkerArray sensed_obstacles;
 
-      for (size_t i = 0; i < msg.markers.size(); i++) {
-        // add the estimated marker to the marker array
-        auto marker = fake_sensor_data_.markers.at(i);
-        auto sensed_marker = create_obstacle(
-          marker.scale.x, marker.scale.y, marker.scale.z,
-          state(2 * marker.id + 3),
-          state(
-            2 * marker.id + 3 + 1),
-          marker.pose.position.z, marker.id, visualization_msgs::msg::Marker::ADD, "map", "g",
-          marker.header.stamp);
+    for (size_t i = 0; i < msg.markers.size(); i++) {
+      // add the estimated marker to the marker array
+      auto marker = fake_sensor_data_.markers.at(i);
+      auto sensed_marker = create_obstacle(
+        marker.scale.x, marker.scale.y, marker.scale.z,
+        state(2 * marker.id + 3),
+        state(
+          2 * marker.id + 3 + 1),
+        marker.pose.position.z, marker.id, visualization_msgs::msg::Marker::ADD, "map", "g",
+        marker.header.stamp);
 
-        sensed_obstacles.markers.insert(
-          sensed_obstacles.markers.end(),
-          sensed_marker);
-      }
-      sensed_obstacles_publisher_->publish(sensed_obstacles);
- 
+      sensed_obstacles.markers.insert(
+        sensed_obstacles.markers.end(),
+        sensed_marker);
+    }
+    sensed_obstacles_publisher_->publish(sensed_obstacles);
+
   }
 
   void sensor_cb(const visualization_msgs::msg::MarkerArray & msg)
   {
-    
+
     auto current_configuration = t_map_odom * t_odom_robot;
 
     state(0) = turtlelib::normalize_angle(current_configuration.rotation());
@@ -323,119 +329,44 @@ private:
 
     // eqns 9, 10
     arma::mat At = arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye);
-    At(1,0) = -dy;
-    At(2,0) = dx;
+    At(1, 0) = -dy;
+    At(2, 0) = dx;
 
     sigma = At * sigma * At.t() + q_bar;
 
     // for each measurement i
     for (size_t i = 0; i < msg.markers.size(); i++) {
-        // grab the marker
-        auto marker = msg.markers.at(i); 
+      // grab the marker
+      auto marker = msg.markers.at(i);
 
-        // begin landmark association
+      // begin landmark association
 
-        // eqs 11, 12
-        auto meas_range = std::sqrt(std::pow(marker.pose.position.x, 2)+std::pow(marker.pose.position.y, 2)); // the marker is in relative x,y already
-        auto meas_bearing = std::atan2(marker.pose.position.y, marker.pose.position.x);
-        
-        // add the marker to the last position of the state (temporarily)
-        
-        state(3 + counter_obstacles * 2) = state(1) + meas_range * std::cos(meas_bearing + state(0));
-        state(3 + counter_obstacles * 2 + 1) = state(2) + meas_range * std::sin(meas_bearing + state(0));
+      // eqs 11, 12
+      auto meas_range =
+        std::sqrt(std::pow(marker.pose.position.x, 2) + std::pow(marker.pose.position.y, 2));                 // the marker is in relative x,y already
+      auto meas_bearing = std::atan2(marker.pose.position.y, marker.pose.position.x);
 
-        counter_obstacles++;
+      // add the marker to the last position of the state (temporarily)
 
-        arma::vec mahanalobis_distances = arma::vec(counter_obstacles);
+      state(3 + counter_obstacles * 2) = state(1) + meas_range * std::cos(meas_bearing + state(0));
+      state(3 + counter_obstacles * 2 + 1) = state(2) + meas_range * std::sin(
+        meas_bearing + state(
+          0));
 
-        // for each landmark k (including the recently added)
-        for (size_t k = 0; k < counter_obstacles; k++){
-            //RCLCPP_INFO_STREAM(get_logger(), "for loop - k = " << k <<std::endl);
-            // estimated measurement eq 14
-            auto est_range = std::sqrt(
-                std::pow(state(3 + k * 2) - state(1), 2) +
-                std::pow(state(3 + k * 2 + 1) - state(2), 2)
-            );
-            auto est_bearing = std::atan2(state(3 + k * 2 + 1) - state(2), state(3 + k * 2) - state(1)) - state(0);
-            est_bearing = turtlelib::normalize_angle(est_bearing);
+      counter_obstacles++;
 
-            // eq 25
-            arma::vec z = {meas_range, meas_bearing};
-            arma::vec z_hat = {est_range, est_bearing};
+      arma::vec mahanalobis_distances = arma::vec(counter_obstacles);
 
-            // eqs 16, 17
-            auto delta_x = state(3 + k * 2) - state(1);
-            auto delta_y = state(3 + k * 2 + 1) - state(2);
-
-            auto d = delta_x * delta_x + delta_y * delta_y;
-
-            // eqn 18
-            arma::mat Hk = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
-            Hk(0,1) = -delta_x / std::sqrt(d);
-            Hk(0,2) = -delta_y / std::sqrt(d);
-            Hk(1,0) = -1.0;
-            Hk(1,1) = delta_y / d;
-            Hk(1,2) = -delta_x / d;
-            Hk(0, 3 + 2 * k) = delta_x / std::sqrt(d);
-            Hk(0, 3 + 2 * k + 1) = delta_y / std::sqrt(d);
-            Hk(1, 3 + 2 * k) = -delta_y / d;
-            Hk(1, 3 + 2 * k + 1) = delta_x / d;
-
-            // 
-            arma::mat psi = Hk * sigma * Hk.t() + R;
-
-            // 
-            arma::vec z_diff = z - z_hat;
-            z_diff(1) = turtlelib::normalize_angle(z_diff(1));
-
-            arma::vec mah = z_diff.t() * arma::inv(psi) * z_diff;
-
-            
-            auto dist = mah(0);
-            
-            if (k == counter_obstacles - 1){ // the newly added landmark
-                dist = mah_threshold;
-            }
-        
-            // RCLCPP_INFO_STREAM(get_logger(), "for loop - set mah distance" <<std::endl);
-            mahanalobis_distances(k) = dist;
-            // RCLCPP_INFO_STREAM(get_logger(), "for loop - after set mah distance" <<std::endl);
-        
-            // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
-        
-        }
-
-        auto min_index = arma::index_min(mahanalobis_distances);
-        auto min = arma::min(mahanalobis_distances);
-
-        if (min_index == counter_obstacles - 1 && min >= mah_threshold){
-            // then we have successfully added it as a new landmark
-        } else if (min_index == counter_obstacles - 1 && min < mah_threshold){
-            // find the closest existing landmark
-            mahanalobis_distances(min_index) = 1000.0; // set to large value
-            // find the minimum again
-            min_index = arma::index_min(mahanalobis_distances);
-            // its a landmark we already knew
-            counter_obstacles--;
-            // remove the changes in the state
-            state(3 + counter_obstacles * 2) = 0.0;
-            state(3 + counter_obstacles * 2 + 1) = 0.0;
-        } else {
-            // its a landmark we already knew
-            counter_obstacles--;
-            // remove the changes in the state
-            state(3 + counter_obstacles * 2) = 0.0;
-            state(3 + counter_obstacles * 2 + 1) = 0.0;
-
-        }
-        // end landmark association
-
+      // for each landmark k (including the recently added)
+      for (size_t k = 0; k < counter_obstacles; k++) {
+        //RCLCPP_INFO_STREAM(get_logger(), "for loop - k = " << k <<std::endl);
         // estimated measurement eq 14
         auto est_range = std::sqrt(
-            std::pow(state(3 + min_index * 2) - state(1), 2) +
-            std::pow(state(3 + min_index * 2 + 1) - state(2), 2)
+          std::pow(state(3 + k * 2) - state(1), 2) +
+          std::pow(state(3 + k * 2 + 1) - state(2), 2)
         );
-        auto est_bearing = std::atan2(state(3 + min_index * 2 + 1) - state(2), state(3 + min_index * 2) - state(1)) - state(0);
+        auto est_bearing =
+          std::atan2(state(3 + k * 2 + 1) - state(2), state(3 + k * 2) - state(1)) - state(0);
         est_bearing = turtlelib::normalize_angle(est_bearing);
 
         // eq 25
@@ -443,40 +374,123 @@ private:
         arma::vec z_hat = {est_range, est_bearing};
 
         // eqs 16, 17
-        auto delta_x = state(3 + min_index * 2) - state(1);
-        auto delta_y = state(3 + min_index * 2 + 1) - state(2);
+        auto delta_x = state(3 + k * 2) - state(1);
+        auto delta_y = state(3 + k * 2 + 1) - state(2);
 
         auto d = delta_x * delta_x + delta_y * delta_y;
 
         // eqn 18
-        arma::mat Hj = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
-        Hj(0,1) = -delta_x / std::sqrt(d);
-        Hj(0,2) = -delta_y / std::sqrt(d);
-        Hj(1,0) = -1.0;
-        Hj(1,1) = delta_y / d;
-        Hj(1,2) = -delta_x / d;
-        Hj(0, 3 + 2 * min_index) = delta_x / std::sqrt(d);
-        Hj(0, 3 + 2 * min_index + 1) = delta_y / std::sqrt(d);
-        Hj(1, 3 + 2 * min_index) = -delta_y / d;
-        Hj(1, 3 + 2 * min_index + 1) = delta_x / d;
+        arma::mat Hk = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
+        Hk(0, 1) = -delta_x / std::sqrt(d);
+        Hk(0, 2) = -delta_y / std::sqrt(d);
+        Hk(1, 0) = -1.0;
+        Hk(1, 1) = delta_y / d;
+        Hk(1, 2) = -delta_x / d;
+        Hk(0, 3 + 2 * k) = delta_x / std::sqrt(d);
+        Hk(0, 3 + 2 * k + 1) = delta_y / std::sqrt(d);
+        Hk(1, 3 + 2 * k) = -delta_y / d;
+        Hk(1, 3 + 2 * k + 1) = delta_x / d;
 
-        // eq 26
-        arma::mat K = sigma * Hj.t() * arma::inv(Hj * sigma * Hj.t() + R);
+        //
+        arma::mat psi = Hk * sigma * Hk.t() + R;
 
-        // eq 27
+        //
         arma::vec z_diff = z - z_hat;
         z_diff(1) = turtlelib::normalize_angle(z_diff(1));
 
-        state = state + K * z_diff;
+        arma::vec mah = z_diff.t() * arma::inv(psi) * z_diff;
 
-        // eq 28
-        sigma = (arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye) - K * Hj) * sigma;
 
-        state(0) = turtlelib::normalize_angle(state(0));
+        auto dist = mah(0);
+
+        if (k == counter_obstacles - 1) {    // the newly added landmark
+          dist = mah_threshold;
+        }
+
+        // RCLCPP_INFO_STREAM(get_logger(), "for loop - set mah distance" <<std::endl);
+        mahanalobis_distances(k) = dist;
+        // RCLCPP_INFO_STREAM(get_logger(), "for loop - after set mah distance" <<std::endl);
+
+        // RCLCPP_INFO_STREAM(get_logger(), "state: "<< state <<std::endl);
+
+      }
+
+      auto min_index = arma::index_min(mahanalobis_distances);
+      auto min = arma::min(mahanalobis_distances);
+
+      if (min_index == counter_obstacles - 1 && min >= mah_threshold) {
+        // then we have successfully added it as a new landmark
+      } else if (min_index == counter_obstacles - 1 && min < mah_threshold) {
+        // find the closest existing landmark
+        mahanalobis_distances(min_index) = 1000.0;     // set to large value
+        // find the minimum again
+        min_index = arma::index_min(mahanalobis_distances);
+        // its a landmark we already knew
+        counter_obstacles--;
+        // remove the changes in the state
+        state(3 + counter_obstacles * 2) = 0.0;
+        state(3 + counter_obstacles * 2 + 1) = 0.0;
+      } else {
+        // its a landmark we already knew
+        counter_obstacles--;
+        // remove the changes in the state
+        state(3 + counter_obstacles * 2) = 0.0;
+        state(3 + counter_obstacles * 2 + 1) = 0.0;
+
+      }
+      // end landmark association
+
+      // estimated measurement eq 14
+      auto est_range = std::sqrt(
+        std::pow(state(3 + min_index * 2) - state(1), 2) +
+        std::pow(state(3 + min_index * 2 + 1) - state(2), 2)
+      );
+      auto est_bearing = std::atan2(
+        state(3 + min_index * 2 + 1) - state(2), state(
+          3 + min_index * 2) - state(1)) - state(0);
+      est_bearing = turtlelib::normalize_angle(est_bearing);
+
+      // eq 25
+      arma::vec z = {meas_range, meas_bearing};
+      arma::vec z_hat = {est_range, est_bearing};
+
+      // eqs 16, 17
+      auto delta_x = state(3 + min_index * 2) - state(1);
+      auto delta_y = state(3 + min_index * 2 + 1) - state(2);
+
+      auto d = delta_x * delta_x + delta_y * delta_y;
+
+      // eqn 18
+      arma::mat Hj = arma::mat(2, 2 * n_landmarks + 3, arma::fill::zeros);
+      Hj(0, 1) = -delta_x / std::sqrt(d);
+      Hj(0, 2) = -delta_y / std::sqrt(d);
+      Hj(1, 0) = -1.0;
+      Hj(1, 1) = delta_y / d;
+      Hj(1, 2) = -delta_x / d;
+      Hj(0, 3 + 2 * min_index) = delta_x / std::sqrt(d);
+      Hj(0, 3 + 2 * min_index + 1) = delta_y / std::sqrt(d);
+      Hj(1, 3 + 2 * min_index) = -delta_y / d;
+      Hj(1, 3 + 2 * min_index + 1) = delta_x / d;
+
+      // eq 26
+      arma::mat K = sigma * Hj.t() * arma::inv(Hj * sigma * Hj.t() + R);
+
+      // eq 27
+      arma::vec z_diff = z - z_hat;
+      z_diff(1) = turtlelib::normalize_angle(z_diff(1));
+
+      state = state + K * z_diff;
+
+      // eq 28
+      sigma =
+        (arma::mat(2 * n_landmarks + 3, 2 * n_landmarks + 3, arma::fill::eye) - K * Hj) * sigma;
+
+      state(0) = turtlelib::normalize_angle(state(0));
     }
-    turtlelib::Transform2D filter_configuration = turtlelib::Transform2D{{state(1), state(2)}, state(0)};
+    turtlelib::Transform2D filter_configuration =
+      turtlelib::Transform2D{{state(1), state(2)}, state(0)};
 
-      // get the transform map->odom
+    // get the transform map->odom
     t_map_odom = filter_configuration * t_odom_robot.inv();
 
     // broadcast the transform
@@ -495,23 +509,23 @@ private:
 
 
     // publish markers
-      visualization_msgs::msg::MarkerArray sensed_obstacles;
+    visualization_msgs::msg::MarkerArray sensed_obstacles;
 
-      for (size_t i = 0; i < counter_obstacles; i++) {
-        // add the estimated marker to the marker array
-        auto sensed_marker = create_obstacle(
-          0.1, 0.1, 0.25,
-          state(2 * i + 3),
-          state(
-            2 * i + 3 + 1),
-          0.125, i, visualization_msgs::msg::Marker::ADD, "map", "g",
-          get_clock()->now());
+    for (size_t i = 0; i < counter_obstacles; i++) {
+      // add the estimated marker to the marker array
+      auto sensed_marker = create_obstacle(
+        0.1, 0.1, 0.25,
+        state(2 * i + 3),
+        state(
+          2 * i + 3 + 1),
+        0.125, i, visualization_msgs::msg::Marker::ADD, "map", "g",
+        get_clock()->now());
 
-        sensed_obstacles.markers.insert(
-          sensed_obstacles.markers.end(),
-          sensed_marker);
-      }
-      sensed_obstacles_publisher_->publish(sensed_obstacles);
+      sensed_obstacles.markers.insert(
+        sensed_obstacles.markers.end(),
+        sensed_marker);
+    }
+    sensed_obstacles_publisher_->publish(sensed_obstacles);
 
   }
 

@@ -55,8 +55,6 @@ public:
   }
 
 private:
-  
-
   std::vector<std::vector<turtlelib::Point2D>> getClusters(const sensor_msgs::msg::LaserScan & msg)
   {
     // translate all readings into x,y coordinates
@@ -121,7 +119,9 @@ private:
 
     for (size_t i = 0; i < clusters.size(); i++) { // for each cluster
       // check the size of the cluster & if the points form a circle
-      if (clusters.at(i).size() > 3 && clusters.at(i).size() < 40 && turtlelib::checkCircle(clusters.at(i))) {
+      if (clusters.at(i).size() > 3 && clusters.at(i).size() < 40 &&
+        turtlelib::checkCircle(clusters.at(i)))
+      {
         // its a circle!
         // then we will convert it to a matrix
         arma::mat cluster = arma::mat(clusters.at(i).size(), 2, arma::fill::zeros);
@@ -142,16 +142,16 @@ private:
       double c_y;
       double r;
       std::tie(c_x, c_y, r) = turtlelib::fitCircle(clusters_mat_list.at(i));
-        if (r < 0.2 && std::sqrt(std::pow(c_x,2)+std::pow(c_y,2)) < 2.0){ // filter obstacles with radius greater than 0.2, and only keep those closer than 2m
-      auto marker = create_obstacle(
-        2.0 * r, 2.0 * r, 0.2, c_x, c_y, 0.0, i,
-        visualization_msgs::msg::Marker::ADD, frame_id);
-      clusters_markers.markers.push_back(marker);
-        }
+      if (r < 0.2 && std::sqrt(std::pow(c_x, 2) + std::pow(c_y, 2)) < 2.0) { // filter obstacles with radius greater than 0.2, and only keep those closer than 2m
+        auto marker = create_obstacle(
+          2.0 * r, 2.0 * r, 0.2, c_x, c_y, 0.0, i,
+          visualization_msgs::msg::Marker::ADD, frame_id);
+        clusters_markers.markers.push_back(marker);
+      }
     }
 
-    if (clusters_markers.markers.size() > 0){
-        sensed_obstacles_publisher_->publish(clusters_markers);
+    if (clusters_markers.markers.size() > 0) {
+      sensed_obstacles_publisher_->publish(clusters_markers);
     }
   }
 

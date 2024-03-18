@@ -570,10 +570,10 @@ private:
     msg.range_min = 0.11;
     msg.range_max = 10.0;
     // we can do 360 measurements per turn
-    
+
     // this would yield angle_increment of 2*pi/360 or 1.0deg
     for (int i = 0; i < 360; i++) { // for each laser beam
-        auto T_world_turtle = turtle_transform;
+      auto T_world_turtle = turtle_transform;
       auto T_turtle_laser = turtlelib::Transform2D{{-0.032, 0.0}};
       T_turtle_laser *=
         turtlelib::Transform2D{static_cast<double>(i) * 2.0 * turtlelib::PI / 360.0};

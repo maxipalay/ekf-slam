@@ -13,6 +13,7 @@ from launch.actions.declare_launch_argument import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch_ros.parameter_descriptions import ParameterFile
 
+
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -114,8 +115,7 @@ def generate_launch_description():
         Node(
             package='nuslam',
             executable='landmarks',
-            parameters=[{"sensor_topic":"/scan"}
-            ]
+            parameters=[{"sensor_topic": "/scan"}]
         ),
         Node(
             package='nuturtle_control',

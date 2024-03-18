@@ -9,7 +9,6 @@ from launch.substitutions import PathJoinSubstitution, LaunchConfiguration,\
         PythonExpression
 from launch.actions import GroupAction
 from launch_ros.actions import PushRosNamespace
-from launch.actions.declare_launch_argument import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch_ros.parameter_descriptions import ParameterFile
 
