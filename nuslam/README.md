@@ -2,6 +2,7 @@
 
 ## Nodes
 - `slam` - SLAM implementation, including odometry, the EKF, simulated landmarks.
+- `landmarks` - Landmark detection from raw laser scan
 
 ## HOWTO
 - `ros2 launch nuslam nuslam.launch.py robot:=nusim` - will launch the necessary nodes to get the SLAM up and running in simulation. It will launch rviz for visualization and a separate teleop window to control the robot.
@@ -36,6 +37,9 @@ EKF error: 0.02, 0.03, 0.03
 - on a pc: `ros2 launch nuslam pc_bringup.launch.py`
 
 ## Results
+
+![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/19bfefbb-09eb-43bc-9289-969691da3d19)
+
 
 Driving the robot around the course and taking it back to its initial pose (eye-measuring using a mark on the floor).
 
