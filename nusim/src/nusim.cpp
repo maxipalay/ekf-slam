@@ -181,8 +181,11 @@ public:
       markers_qos_);
 
     // create laser publisher
+    auto laser_qos_ = rclcpp::SystemDefaultsQoS{};
+    laser_qos_.best_effort();
+
     laser_publisher_ = create_publisher<sensor_msgs::msg::LaserScan>(
-      "~/scan", 10);
+      "~/scan", laser_qos_);
 
     // publish obstacles
     publish_obstacles();
@@ -557,7 +560,7 @@ private:
   {
     // construct the message
     auto msg = sensor_msgs::msg::LaserScan();
-    msg.header.stamp = get_clock()->now() - rclcpp::Duration(1, 0);
+    msg.header.stamp = get_clock()->now();
     msg.header.frame_id = "red/base_scan";
     msg.angle_min = 0.0;
     msg.angle_max = 6.26573;
@@ -567,9 +570,10 @@ private:
     msg.range_min = 0.11;
     msg.range_max = 10.0;
     // we can do 360 measurements per turn
-    auto T_world_turtle = turtle_transform;
+    
     // this would yield angle_increment of 2*pi/360 or 1.0deg
     for (int i = 0; i < 360; i++) { // for each laser beam
+        auto T_world_turtle = turtle_transform;
       auto T_turtle_laser = turtlelib::Transform2D{{-0.032, 0.0}};
       T_turtle_laser *=
         turtlelib::Transform2D{static_cast<double>(i) * 2.0 * turtlelib::PI / 360.0};
