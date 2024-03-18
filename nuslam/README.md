@@ -20,6 +20,8 @@
 
 ## Results
 
+https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/e7acab76-cb1b-4bc8-ad93-7ce7bbc67f92
+
 After running the robot on a closed loop for a few laps as shown in the video, the results show the following final positions:
 
 - Position according to odometry (x,y,theta): -1.27, 0.58, 2.07
@@ -43,7 +45,7 @@ EKF error: 0.02, 0.03, 0.03
 
 Driving the robot around the course and taking it back to its initial pose (eye-measuring using a mark on the floor).
 
-Final SLAM estimation (x,y,theta): (-0.02, 0.01, -0.06) 
-Final odometry estimation (x,y,theta): (0.02, 0.24, -0.67)
+- Final SLAM estimation (x,y,theta): (-0.02, 0.01, -0.06) 
+- Final odometry estimation (x,y,theta): (0.02, 0.24, -0.67)
 
 The SLAM outperforms the Odometry just by going a couple of rounds on the course.
