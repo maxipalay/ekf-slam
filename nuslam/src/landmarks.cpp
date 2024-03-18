@@ -1,23 +1,12 @@
 /// \file
-/// \brief Turtle EKF SLAM.
+/// \brief Landmark detection form laser scan.
 ///
 /// PARAMETERS:
-///     wheel_radius (double): radius of the turtlebot's wheels
-///     track_width (double): distance between the wheels
-///     body_id (string): name of the body frame of the robot
-///     odom_id (string): name of the odometry frame
-///     wheel_left (string): name of the left wheel link
-///     wheel_right (string): name of the right wheel link
-///     rate (double): rate at which odometry is published (default 100)
-///     path_rate (double): rate at which the path is published
+///     sensor_topic (string): name of the laser scan topic
 /// PUBLISHES:
-///     odom (nav_msgs::msg::Odometry): turtlebot odometry
-///     tf (tf2 transform broadcast): transform between odom frame and body frame
-///     /red/path (nav_msgs::msg::Path): path followed by the robot in the map frame
+///     green/detected_obstacles (visualization_msgs::msg::MarkerArray): marker array containing the detected obstacles
 /// SUBSCRIBES:
-///     joint_states (sensor_msgs::msg::JointState): wheels position
-/// SERVICES:
-///     initial_pose (nuturtle_control_interfaces::srv::InitialPose): motion commands
+///     sensor_topic (sensor_msgs::msg::LaserScan): laser scans
 
 #include <chrono>
 #include <functional>
@@ -42,10 +31,17 @@ public:
   Landmarks()
   : Node("landmarks")
   {
+    declare_parameter("sensor_topic", "nusim/scan");
+
+    auto sensor_topic = get_parameter("sensor_topic").as_string();
 
     // create publishers and subscribers
+
+    auto laser_qos_ = rclcpp::SystemDefaultsQoS{};
+    laser_qos_.best_effort();
+
     sub_laser_scan_ = create_subscription<sensor_msgs::msg::LaserScan>(
-      "nusim/scan", 10, std::bind(&Landmarks::laserCallback, this, std::placeholders::_1));
+      sensor_topic, laser_qos_, std::bind(&Landmarks::laserCallback, this, std::placeholders::_1));
 
     // create QoS for markers publishers
     auto markers_qos_ = rclcpp::SystemDefaultsQoS{};
@@ -125,7 +121,7 @@ private:
 
     for (size_t i = 0; i < clusters.size(); i++) { // for each cluster
       // check the size of the cluster & if the points form a circle
-      if (clusters.at(i).size() > 3 && clusters.at(i).size() < 25 && turtlelib::checkCircle(clusters.at(i))) {
+      if (clusters.at(i).size() > 3 && clusters.at(i).size() < 40 && turtlelib::checkCircle(clusters.at(i))) {
         // its a circle!
         // then we will convert it to a matrix
         arma::mat cluster = arma::mat(clusters.at(i).size(), 2, arma::fill::zeros);
@@ -146,7 +142,7 @@ private:
       double c_y;
       double r;
       std::tie(c_x, c_y, r) = turtlelib::fitCircle(clusters_mat_list.at(i));
-        if (r < 0.2){ // filter obstacles with radius greater than 0.2
+        if (r < 0.2 && std::sqrt(std::pow(c_x,2)+std::pow(c_y,2)) < 2.0){ // filter obstacles with radius greater than 0.2, and only keep those closer than 2m
       auto marker = create_obstacle(
         2.0 * r, 2.0 * r, 0.2, c_x, c_y, 0.0, i,
         visualization_msgs::msg::Marker::ADD, frame_id);
@@ -154,7 +150,9 @@ private:
         }
     }
 
-    sensed_obstacles_publisher_->publish(clusters_markers);
+    if (clusters_markers.markers.size() > 0){
+        sensed_obstacles_publisher_->publish(clusters_markers);
+    }
   }
 
   visualization_msgs::msg::Marker create_obstacle(
