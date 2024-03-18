@@ -33,3 +33,16 @@ Driving a circle around 4 landmarks in simulation. Green robot represents SLAM e
 
 ![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/b29dbed4-4ae7-4b05-8a15-ad73554f5f96)
 
+# Real world test
+
+Testing on the actual turtlebot! The SLAM outperforms the odometry with just a couple laps.
+
+https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/28ba2547-83ba-43ec-9bb8-e3cf541f95de
+
+![Screenshot from 2024-03-17 19-38-13](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/506a3721-cbf0-42d2-bc8a-5014ece5e995)
+
+
+Driving the robot around the course and taking it back to its initial pose (eye-measuring using a mark on the floor).
+
+Final SLAM estimation (x,y,theta): (-0.02, 0.01, -0.06)
+Final odometry estimation (x,y,theta): (0.02, 0.24, -0.67)
