@@ -9,8 +9,7 @@
 
 # Screen capture
 
-- ![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/31f93221-8e56-41b3-9a30-9d4ff05eab7b)
-
+![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/31f93221-8e56-41b3-9a30-9d4ff05eab7b)
 
 # Simulation test
 
@@ -40,8 +39,11 @@ EKF error: 0.02, 0.03, 0.03
 
 ## Results
 
-![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/19bfefbb-09eb-43bc-9289-969691da3d19)
+https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/c8b722d0-9ad6-48ec-b6c2-da0bb769b07e
 
+
+
+![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/19bfefbb-09eb-43bc-9289-969691da3d19)
 
 Driving the robot around the course and taking it back to its initial pose (eye-measuring using a mark on the floor).
 
