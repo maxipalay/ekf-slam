@@ -54,7 +54,7 @@ public:
     declare_parameter("wheel_right", rclcpp::ParameterType::PARAMETER_STRING);
     declare_parameter("odom_id", "odom");
     declare_parameter("rate", 100.0);
-    declare_parameter("path_rate", 5.0);
+    declare_parameter("path_rate", 1.0);
 
     wheel_radius = get_parameter("wheel_radius").as_double();
     wheel_track = get_parameter("track_width").as_double();
