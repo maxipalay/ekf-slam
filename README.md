@@ -1,4 +1,6 @@
-# ME495 Sensing, Navigation and Machine Learning For Robotics
+# EKF-based SLAM
+
+https://github.com/maxipalay/ekf-slam/assets/41023326/2b1723bb-607d-425f-93e8-dac316ece29d
 
 * Maximiliano Palay
 * Winter 2024
@@ -23,24 +25,19 @@ There is also a C++ library
 
 # Odometry test
 
-https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/9d8e40f0-de09-4377-83a5-25810adaf671
+https://github.com/maxipalay/ekf-slam/assets/41023326/15553ec2-39d4-4105-bdd2-a6a1a4b19a7b
 
 The odometry test recorded in the video showed a final error of roughly 0.29 meters. This test was performed using encoder odometry solely.
 
-# SLAM test
+# Simulation test
 
 Driving a circle around 4 landmarks in simulation. Green robot represents SLAM estimation, red robot represents ground truth in simulation, blue robot represents odometry-based localization.
 
-![image](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/b29dbed4-4ae7-4b05-8a15-ad73554f5f96)
+https://github.com/maxipalay/ekf-slam/assets/41023326/a8fe9948-5daa-4884-9051-67ade433dcb1
 
 # Real world test
 
-Testing on the actual turtlebot! The SLAM outperforms the odometry with just a couple laps.
-
-https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/28ba2547-83ba-43ec-9bb8-e3cf541f95de
-
-![Screenshot from 2024-03-17 19-38-13](https://github.com/ME495-Navigation/slam-project-maxipalay/assets/41023326/506a3721-cbf0-42d2-bc8a-5014ece5e995)
-
+Testing on the actual turtlebot! The SLAM outperforms the odometry with just a couple laps. First video in this readme shows this test.
 
 Driving the robot around the course and taking it back to its initial pose (eye-measuring using a mark on the floor).
 
