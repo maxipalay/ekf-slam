@@ -1,9 +1,8 @@
 # EKF-based SLAM
 
-https://github.com/maxipalay/ekf-slam/assets/41023326/2b1723bb-607d-425f-93e8-dac316ece29d
+Implementation of kinematics, odometry, simulation and EKF for SLAM from scratch. Find out more in the linked webpage.
 
-* Maximiliano Palay
-* Winter 2024
+https://github.com/maxipalay/ekf-slam/assets/41023326/2b1723bb-607d-425f-93e8-dac316ece29d
 
 # Package List
 This repository consists of several ROS packages
